@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>外送員通訊中心</title>
+  <link rel="stylesheet" href="/css/driver-portal.css">
+  <style>
+    .chat-container {
+      display: flex;
+      height: 80vh;
+      gap: 20px;
+      margin-top: 20px;
+    }
+    
+    .chat-sidebar {
+      width: 250px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 15px;
+      overflow-y: auto;
+    }
+    
+    .chat-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .chat-header {
+      padding: 15px 20px;
+      border-bottom: 1px solid #e9ecef;
+      background: #007bff;
+      color: white;
+      border-radius: 8px 8px 0 0;
+    }
+    
+    .chat-messages {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      max-height: 400px;
+    }
+    
+    .chat-input {
+      padding: 15px 20px;
+      border-top: 1px solid #e9ecef;
+      background: #f8f9fa;
+      border-radius: 0 0 8px 8px;
+    }
+    
+    .message {
+      margin-bottom: 15px;
+      padding: 10px 15px;
+      border-radius: 8px;
+      max-width: 70%;
+    }
+    
+    .message.sent {
+      background: #007bff;
+      color: white;
+      margin-left: auto;
+      text-align: right;
+    }
+    
+    .message.received {
+      background: #e9ecef;
+      color: #333;
+    }
+    
+    .message.system {
+      background: #fff3cd;
+      color: #856404;
+      text-align: center;
+      max-width: 100%;
+    }
+    
+    .message-time {
+      font-size: 12px;
+      opacity: 0.7;
+      margin-top: 5px;
+    }
+    
+    .message-sender {
+      font-weight: bold;
+      font-size: 12px;
+      margin-bottom: 5px;
+    }
+    
+    .input-group {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .input-group input {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    
+    .input-group button {
+      padding: 10px 20px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    
+    .status-indicator {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+    
+    .status-online { background: #28a745; }
+    .status-offline { background: #dc3545; }
+    .status-connecting { background: #ffc107; }
+    
+    .room-list {
+      margin-bottom: 20px;
+    }
+    
+    .room-item {
+      padding: 10px;
+      margin-bottom: 5px;
+      background: white;
+      border-radius: 4px;
+      cursor: pointer;
+      border: 1px solid #e9ecef;
+    }
+    
+    .room-item:hover {
+      background: #e9ecef;
+    }
+    
+    .room-item.active {
+      background: #007bff;
+      color: white;
+    }
+    
+    .notification-badge {
+      background: #dc3545;
+      color: white;
+      border-radius: 10px;
+      padding: 2px 6px;
+      font-size: 11px;
+      margin-left: 8px;
+    }
+    
+    .connection-status {
+      padding: 10px;
+      text-align: center;
+      font-weight: bold;
+      margin-bottom: 15px;
+      border-radius: 4px;
+    }
+    
+    .location-controls {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    
+    .location-status {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    .btn-primary { background: #007bff; color: white; }
+    .btn-success { background: #28a745; color: white; }
+    .btn-warning { background: #ffc107; color: #212529; }
+    .btn-danger { background: #dc3545; color: white; }
+  </style>
+</head>
+<body>
+  <div class="driver-header">
+    <h1>外送員通訊中心</h1>
+    <nav>
+      <a href="/driver/dashboard">工作台</a> |
+      <a href="/driver/orders">我的訂單</a> |
+      <a href="/driver/profile">個人資料</a> |
+      <a href="/driver/logout">登出</a>
+    </nav>
+  </div>
+
+  <div class="container">
+    <!-- 連接狀態 -->
+    <div id="connectionStatus" class="connection-status">
+      <span class="status-indicator status-connecting"></span>
+      正在連接通訊服務...
+    </div>
+
+    <!-- 位置控制 -->
+    <div class="location-controls">
+      <div class="location-status">
+        <span>位置追蹤: <span id="locationStatus">未啟用</span></span>
+        <button id="toggleLocation" class="btn btn-primary">啟用位置追蹤</button>
+      </div>
+      <div id="locationInfo" style="font-size: 12px; color: #666; display: none;">
+        <span id="coordinatesDisplay">座標: --</span> |
+        <span id="accuracyDisplay">精度: --</span>
+      </div>
+    </div>
+
+    <div class="chat-container">
+      <!-- 側邊欄 -->
+      <div class="chat-sidebar">
+        <h3>通訊房間</h3>
+        <div class="room-list" id="roomList">
+          <div class="room-item" data-room="drivers_global">
+            📢 外送員大廳
+            <span class="notification-badge" id="badge_drivers_global" style="display: none;">0</span>
+          </div>
+          <div class="room-item" data-room="admin_global">
+            👥 管理中心
+            <span class="notification-badge" id="badge_admin_global" style="display: none;">0</span>
+          </div>
+        </div>
+
+        <h3>外送員列表</h3>
+        <div id="driverList">
+          <div style="text-align: center; color: #666; padding: 20px;">
+            載入中...
+          </div>
+        </div>
+      </div>
+
+      <!-- 主聊天區域 -->
+      <div class="chat-main">
+        <div class="chat-header">
+          <h3 id="chatTitle">選擇一個房間開始聊天</h3>
+          <small id="chatSubtitle"></small>
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+          <div class="message system">
+            歡迎使用外送員通訊系統！請選擇左側的房間開始聊天。
+          </div>
+        </div>
+        
+        <div class="chat-input">
+          <div class="input-group">
+            <input type="text" id="messageInput" placeholder="輸入訊息..." disabled>
+            <button id="sendButton" disabled>發送</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 外送員資訊 -->
+  <script>
+    const driverInfo = {
+      id: '<%= driver.id %>',
+      name: '<%= driver.name %>',
+      phone: '<%= driver.phone %>'
+    };
+  </script>
+
+  <script src="/js/websocket-client.js"></script>
+  <script>
+    class DriverChatApp {
+      constructor() {
+        this.wsClient = new WebSocketClient();
+        this.currentRoom = null;
+        this.unreadCounts = new Map();
+        this.locationWatcher = null;
+        this.isLocationTracking = false;
+        
+        this.initializeElements();
+        this.initializeWebSocket();
+        this.initializeLocationTracking();
+        
+        console.log('🚚 外送員通訊應用已啟動');
+      }
+
+      initializeElements() {
+        this.connectionStatus = document.getElementById('connectionStatus');
+        this.roomList = document.getElementById('roomList');
+        this.chatTitle = document.getElementById('chatTitle');
+        this.chatSubtitle = document.getElementById('chatSubtitle');
+        this.chatMessages = document.getElementById('chatMessages');
+        this.messageInput = document.getElementById('messageInput');
+        this.sendButton = document.getElementById('sendButton');
+        this.toggleLocationBtn = document.getElementById('toggleLocation');
+        this.locationStatus = document.getElementById('locationStatus');
+        this.locationInfo = document.getElementById('locationInfo');
+        this.coordinatesDisplay = document.getElementById('coordinatesDisplay');
+        this.accuracyDisplay = document.getElementById('accuracyDisplay');
+
+        // 事件監聽
+        this.sendButton.addEventListener('click', () => this.sendMessage());
+        this.messageInput.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') this.sendMessage();
+        });
+        this.toggleLocationBtn.addEventListener('click', () => this.toggleLocationTracking());
+
+        // 房間點擊事件
+        this.roomList.addEventListener('click', (e) => {
+          const roomItem = e.target.closest('.room-item');
+          if (roomItem) {
+            this.switchRoom(roomItem.dataset.room);
+          }
+        });
+      }
+
+      async initializeWebSocket() {
+        this.updateConnectionStatus('connecting', '正在連接通訊服務...');
+
+        // 設定事件監聽
+        this.wsClient.on('connected', () => {
+          this.updateConnectionStatus('connected', '已連接到通訊服務');
+          // 自動進行身份驗證
+          this.wsClient.authenticate('driver', driverInfo.id);
+        });
+
+        this.wsClient.on('authenticated', () => {
+          this.updateConnectionStatus('online', `${driverInfo.name} 已上線`);
+          this.enableChatInterface();
+        });
+
+        this.wsClient.on('disconnected', () => {
+          this.updateConnectionStatus('offline', '通訊服務已斷線');
+          this.disableChatInterface();
+        });
+
+        this.wsClient.on('broadcast_message', (data) => {
+          this.handleBroadcastMessage(data);
+        });
+
+        this.wsClient.on('private_message', (data) => {
+          this.handlePrivateMessage(data);
+        });
+
+        this.wsClient.on('server_error', (data) => {
+          this.addSystemMessage(`伺服器錯誤: ${data.message}`);
+        });
+
+        // 連接到WebSocket
+        try {
+          await this.wsClient.connect();
+        } catch (error) {
+          this.updateConnectionStatus('error', '連接失敗');
+          console.error('WebSocket連接失敗:', error);
+        }
+      }
+
+      updateConnectionStatus(status, message) {
+        const indicator = this.connectionStatus.querySelector('.status-indicator');
+        indicator.className = `status-indicator status-${status}`;
+        this.connectionStatus.innerHTML = `<span class="status-indicator status-${status}"></span>${message}`;
+      }
+
+      enableChatInterface() {
+        this.messageInput.disabled = false;
+        this.sendButton.disabled = false;
+        this.messageInput.placeholder = '輸入訊息...';
+        
+        // 自動加入外送員大廳
+        this.switchRoom('drivers_global');
+      }
+
+      disableChatInterface() {
+        this.messageInput.disabled = true;
+        this.sendButton.disabled = true;
+        this.messageInput.placeholder = '通訊服務未連接';
+      }
+
+      switchRoom(roomName) {
+        if (this.currentRoom === roomName) return;
+
+        // 更新UI
+        document.querySelectorAll('.room-item').forEach(item => {
+          item.classList.remove('active');
+        });
+        document.querySelector(`[data-room="${roomName}"]`).classList.add('active');
+
+        // 清除未讀計數
+        this.clearUnreadCount(roomName);
+
+        // 更新聊天標題
+        const roomTitles = {
+          'drivers_global': '外送員大廳',
+          'admin_global': '管理中心'
+        };
+        
+        this.chatTitle.textContent = roomTitles[roomName] || roomName;
+        this.chatSubtitle.textContent = `房間: ${roomName}`;
+
+        // 清空訊息區域
+        this.chatMessages.innerHTML = '';
+        
+        // 加入房間
+        if (this.currentRoom) {
+          this.wsClient.leaveRoom(this.currentRoom);
+        }
+        
+        this.wsClient.joinRoom(roomName);
+        this.currentRoom = roomName;
+
+        this.addSystemMessage(`已加入 ${roomTitles[roomName] || roomName}`);
+      }
+
+      sendMessage() {
+        const message = this.messageInput.value.trim();
+        if (!message || !this.currentRoom) return;
+
+        // 發送廣播訊息
+        this.wsClient.broadcast(this.currentRoom, message);
+        
+        // 顯示在聊天區域
+        this.addMessage({
+          type: 'sent',
+          content: message,
+          sender: { userType: 'driver', userId: driverInfo.id },
+          timestamp: new Date().toISOString()
+        });
+
+        this.messageInput.value = '';
+      }
+
+      handleBroadcastMessage(data) {
+        if (data.room === this.currentRoom) {
+          this.addMessage({
+            type: 'received',
+            content: data.content,
+            sender: data.sender,
+            timestamp: data.timestamp
+          });
+        } else {
+          // 更新未讀計數
+          this.incrementUnreadCount(data.room);
+        }
+      }
+
+      handlePrivateMessage(data) {
+        this.addMessage({
+          type: 'private',
+          content: data.content,
+          sender: data.sender,
+          timestamp: data.timestamp
+        });
+      }
+
+      addMessage(messageData) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${messageData.type}`;
+
+        let senderInfo = '';
+        if (messageData.type === 'received' || messageData.type === 'private') {
+          senderInfo = `<div class="message-sender">${messageData.sender.userType}_${messageData.sender.userId}</div>`;
+        }
+
+        messageDiv.innerHTML = `
+          ${senderInfo}
+          <div class="message-content">${this.escapeHtml(messageData.content)}</div>
+          <div class="message-time">${new Date(messageData.timestamp).toLocaleTimeString('zh-TW')}</div>
+        `;
+
+        this.chatMessages.appendChild(messageDiv);
+        this.scrollToBottom();
+      }
+
+      addSystemMessage(message) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message system';
+        messageDiv.innerHTML = `
+          <div class="message-content">${this.escapeHtml(message)}</div>
+          <div class="message-time">${new Date().toLocaleTimeString('zh-TW')}</div>
+        `;
+        this.chatMessages.appendChild(messageDiv);
+        this.scrollToBottom();
+      }
+
+      incrementUnreadCount(room) {
+        const current = this.unreadCounts.get(room) || 0;
+        this.unreadCounts.set(room, current + 1);
+        this.updateUnreadBadge(room);
+      }
+
+      clearUnreadCount(room) {
+        this.unreadCounts.set(room, 0);
+        this.updateUnreadBadge(room);
+      }
+
+      updateUnreadBadge(room) {
+        const badge = document.getElementById(`badge_${room}`);
+        const count = this.unreadCounts.get(room) || 0;
+        
+        if (count > 0) {
+          badge.textContent = count;
+          badge.style.display = 'inline';
+        } else {
+          badge.style.display = 'none';
+        }
+      }
+
+      initializeLocationTracking() {
+        if (!navigator.geolocation) {
+          this.locationStatus.textContent = '瀏覽器不支援位置服務';
+          this.toggleLocationBtn.disabled = true;
+          return;
+        }
+      }
+
+      toggleLocationTracking() {
+        if (this.isLocationTracking) {
+          this.stopLocationTracking();
+        } else {
+          this.startLocationTracking();
+        }
+      }
+
+      startLocationTracking() {
+        const options = {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 30000
+        };
+
+        this.locationWatcher = navigator.geolocation.watchPosition(
+          (position) => {
+            const { latitude, longitude, accuracy, speed } = position.coords;
+            
+            // 更新顯示
+            this.coordinatesDisplay.textContent = `座標: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+            this.accuracyDisplay.textContent = `精度: ${Math.round(accuracy)}m`;
+            this.locationInfo.style.display = 'block';
+            
+            // 發送位置更新
+            this.wsClient.updateDriverLocation(latitude, longitude, accuracy, speed);
+          },
+          (error) => {
+            console.error('位置追蹤錯誤:', error);
+            this.locationStatus.textContent = '位置追蹤失敗';
+          },
+          options
+        );
+
+        this.isLocationTracking = true;
+        this.locationStatus.textContent = '追蹤中';
+        this.toggleLocationBtn.textContent = '停止位置追蹤';
+        this.toggleLocationBtn.className = 'btn btn-danger';
+      }
+
+      stopLocationTracking() {
+        if (this.locationWatcher) {
+          navigator.geolocation.clearWatch(this.locationWatcher);
+          this.locationWatcher = null;
+        }
+
+        this.isLocationTracking = false;
+        this.locationStatus.textContent = '已停止';
+        this.toggleLocationBtn.textContent = '啟用位置追蹤';
+        this.toggleLocationBtn.className = 'btn btn-primary';
+        this.locationInfo.style.display = 'none';
+      }
+
+      scrollToBottom() {
+        this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+      }
+
+      escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+    }
+
+    // 初始化應用
+    document.addEventListener('DOMContentLoaded', () => {
+      new DriverChatApp();
+    });
+  </script>
+</body>
+</html>

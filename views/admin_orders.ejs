@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>訂單管理 - 誠意鮮蘉管理後台</title>
+    <link rel="stylesheet" href="/css/admin-dashboard.css">
+    <style>
+        .orders-container {
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .orders-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+            color: white;
+            border-radius: 12px;
+        }
+        
+        .orders-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #3498db;
+            text-align: center;
+        }
+        
+        .stat-card.placed { border-left-color: #f39c12; }
+        .stat-card.packaging { border-left-color: #3498db; }
+        .stat-card.delivering { border-left-color: #9b59b6; }
+        .stat-card.delivered { border-left-color: #27ae60; }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .stat-label {
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+        
+        .orders-table {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .table-header {
+            background: linear-gradient(135deg, #34495e, #2c3e50);
+            color: white;
+            padding: 15px 20px;
+            font-weight: bold;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        
+        th {
+            background: #34495e;
+            color: white;
+            font-weight: 600;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+            color: white;
+        }
+        
+        .status-placed { background: #f39c12; }
+        .status-packaging { background: #3498db; }
+        .status-delivering { background: #9b59b6; }
+        .status-delivered { background: #27ae60; }
+        .status-cancelled { background: #e74c3c; }
+        
+        .action-btn {
+            background: #3498db;
+            color: white;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+        
+        .action-btn:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #7f8c8d;
+        }
+        
+        .empty-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+        
+        .back-btn {
+            background: #95a5a6;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+        
+        .back-btn:hover {
+            background: #7f8c8d;
+        }
+        
+        @media (max-width: 768px) {
+            .orders-container {
+                padding: 10px;
+            }
+            
+            table {
+                font-size: 0.9em;
+            }
+            
+            th, td {
+                padding: 10px 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="orders-container">
+        <a href="/admin" class="back-btn">← 回到主控台</a>
+        
+        <div class="orders-header">
+            <div>
+                <h1>📊 訂單管理系統</h1>
+                <p>管理所有客戶訂單與配送狀態</p>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 2em;">📦</div>
+                <div><%= orders ? orders.length : 0 %> 筆訂單</div>
+            </div>
+        </div>
+        
+        <% if (orders && orders.length > 0) { %>
+            <!-- 統計卡片 -->
+            <div class="orders-stats">
+                <div class="stat-card placed">
+                    <div class="stat-number"><%= orders.filter(o => o.status === 'placed').length %></div>
+                    <div class="stat-label">已下單</div>
+                </div>
+                <div class="stat-card packaging">
+                    <div class="stat-number"><%= orders.filter(o => o.status === 'packaging').length %></div>
+                    <div class="stat-label">打包中</div>
+                </div>
+                <div class="stat-card delivering">
+                    <div class="stat-number"><%= orders.filter(o => o.status === 'delivering').length %></div>
+                    <div class="stat-label">配送中</div>
+                </div>
+                <div class="stat-card delivered">
+                    <div class="stat-number"><%= orders.filter(o => o.status === 'delivered').length %></div>
+                    <div class="stat-label">已完成</div>
+                </div>
+            </div>
+            
+            <!-- 訂單表格 -->
+            <div class="orders-table">
+                <div class="table-header">
+                    📅 訂單列表 - 共 <%= orders.length %> 筆訂單
+                </div>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>訂單編號</th>
+                            <th>客戶資訊</th>
+                            <th>配送地址</th>
+                            <th>訂單狀態</th>
+                            <th>總金額</th>
+                            <th>下單時間</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% orders.forEach(function(order) { %>
+                            <tr>
+                                <td><strong>#<%= order.id %></strong></td>
+                                <td>
+                                    <div><strong><%= order.contact_name %></strong></div>
+                                    <div style="color: #7f8c8d; font-size: 0.9em;"><%= order.contact_phone %></div>
+                                </td>
+                                <td style="max-width: 200px;">
+                                    <div style="overflow: hidden; text-overflow: ellipsis;">
+                                        <%= order.address %>
+                                    </div>
+                                </td>
+                                <td>
+                                    <% 
+                                        let statusClass = '';
+                                        let statusText = '';
+                                        switch(order.status) {
+                                            case 'placed': statusClass = 'status-placed'; statusText = '已下單'; break;
+                                            case 'packaging': statusClass = 'status-packaging'; statusText = '打包中'; break;
+                                            case 'delivering': statusClass = 'status-delivering'; statusText = '配送中'; break;
+                                            case 'delivered': statusClass = 'status-delivered'; statusText = '已完成'; break;
+                                            default: statusClass = 'status-cancelled'; statusText = order.status;
+                                        }
+                                    %>
+                                    <span class="status-badge <%= statusClass %>"><%= statusText %></span>
+                                </td>
+                                <td><strong style="color: #27ae60;">$<%= order.total %></strong></td>
+                                <td style="color: #7f8c8d; font-size: 0.9em;">
+                                    <%= new Date(order.created_at).toLocaleString('zh-TW') %>
+                                </td>
+                                <td>
+                                    <a href="/admin/orders/<%= order.id %>" class="action-btn">
+                                        🔍 查看詳情
+                                    </a>
+                                </td>
+                            </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
+            </div>
+        <% } else { %>
+            <div class="empty-state">
+                <div class="empty-icon">📦</div>
+                <h2>目前沒有訂單</h2>
+                <p>等待客戶下單，訂單就會顯示在這裡</p>
+            </div>
+        <% } %>
+    </div>
+</body>
+</html>

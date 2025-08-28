@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8">
+    <title>LINE 綁定成功</title>
+    <link rel="stylesheet" href="/css/styles.css">
+  </head>
+  <body>
+    <h1>LINE 綁定成功</h1>
+    <% if (line) { %>
+      <p>您好，<%= line.displayName %>！您的 LINE 已與本系統綁定。</p>
+    <% } else { %>
+      <p>您的 LINE 已綁定。</p>
+    <% } %>
+    <p>您現在可以享有訂單通知服務。</p>
+    <p><a href="/">回首頁</a></p>
+  </body>
+</html>

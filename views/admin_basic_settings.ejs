@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>基本資料管理 - 後台管理系統</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2d5a3d;
+            --accent-color: #7cb342;
+            --bg-light: #f8f9fa;
+            --border-light: rgba(0,0,0,0.125);
+        }
+
+        body {
+            background: var(--bg-light);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .navbar {
+            background: linear-gradient(135deg, var(--primary-color), #1e3d2a);
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+        }
+
+        .main-container {
+            margin-top: 2rem;
+        }
+
+        .settings-card {
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+
+        .settings-card-header {
+            background: linear-gradient(135deg, var(--accent-color), #8bc34a);
+            color: white;
+            padding: 1.5rem;
+            border: none;
+        }
+
+        .settings-card-header h5 {
+            margin: 0;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .settings-group {
+            padding: 2rem;
+        }
+
+        .setting-item {
+            background: white;
+            border: 2px solid #f0f0f0;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .setting-item:hover {
+            border-color: var(--accent-color);
+            box-shadow: 0 4px 15px rgba(124, 179, 66, 0.1);
+        }
+
+        .setting-label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .setting-description {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 1rem;
+        }
+
+        .color-input-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        .color-input {
+            width: 60px;
+            height: 40px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-right: 1rem;
+        }
+
+        .color-preview {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            border: 2px solid #ddd;
+            margin-left: 0.5rem;
+            vertical-align: middle;
+        }
+
+        .form-control, .form-select {
+            border-radius: 8px;
+            border: 2px solid #e9ecef;
+            padding: 0.75rem 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 0.2rem rgba(124, 179, 66, 0.25);
+        }
+
+        .btn-primary {
+            background: var(--accent-color);
+            border-color: var(--accent-color);
+            border-radius: 10px;
+            padding: 0.75rem 2rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            background: #6da632;
+            border-color: #6da632;
+            transform: translateY(-2px);
+        }
+
+        .btn-outline-secondary {
+            border-radius: 10px;
+            padding: 0.75rem 2rem;
+            font-weight: 600;
+        }
+
+        .btn-danger {
+            border-radius: 10px;
+            padding: 0.5rem 1rem;
+        }
+
+        .preview-section {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 2px dashed #dee2e6;
+        }
+
+        .preview-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 1rem;
+        }
+
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .category-tabs {
+            border-bottom: 2px solid #e9ecef;
+            margin-bottom: 2rem;
+        }
+
+        .category-tab {
+            background: none;
+            border: none;
+            padding: 1rem 2rem;
+            font-weight: 600;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .category-tab.active {
+            color: var(--accent-color);
+            border-bottom-color: var(--accent-color);
+        }
+
+        .category-tab:hover {
+            color: var(--accent-color);
+            background: rgba(124, 179, 66, 0.05);
+        }
+
+        .actions-bar {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- 導航欄 -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            <a class="navbar-brand text-white fw-bold" href="/admin/dashboard">
+                <i class="fas fa-cog"></i> 基本資料管理
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link text-white" href="/admin/dashboard">
+                    <i class="fas fa-arrow-left"></i> 返回後台
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid main-container">
+        <div class="row">
+            <div class="col-12">
+                <!-- 操作欄 -->
+                <div class="actions-bar">
+                    <h4 class="mb-0">
+                        <i class="fas fa-palette"></i> 系統設定管理
+                    </h4>
+                    <div class="ms-auto d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary" onclick="previewChanges()">
+                            <i class="fas fa-eye"></i> 預覽效果
+                        </button>
+                        <button type="button" class="btn btn-danger" onclick="resetToDefaults()">
+                            <i class="fas fa-undo"></i> 重設預設值
+                        </button>
+                        <button type="button" class="btn btn-primary" onclick="saveAllSettings()">
+                            <i class="fas fa-save"></i> 儲存設定
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 分類標籤 -->
+                <div class="category-tabs" id="category-tabs">
+                    <!-- 動態生成 -->
+                </div>
+
+                <!-- 設定內容 -->
+                <div id="settings-content">
+                    <!-- 動態生成 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 通知 -->
+    <div class="toast-container">
+        <div id="notification-toast" class="toast" role="alert">
+            <div class="toast-header">
+                <strong class="me-auto">系統通知</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body"></div>
+        </div>
+    </div>
+
+    <!-- 預覽模態窗口 -->
+    <div class="modal fade" id="previewModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">設定預覽</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="preview-content">
+                    <!-- 預覽內容 -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 全域變數
+        let currentSettings = {};
+        let allCategories = {};
+        let activeCategory = 'theme';
+
+        // 頁面初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSettings();
+        });
+
+        // 載入設定
+        async function loadSettings() {
+            try {
+                const response = await fetch('/api/admin/basic-settings');
+                const data = await response.json();
+
+                if (data.success) {
+                    currentSettings = data.settings;
+                    allCategories = data.categories;
+                    
+                    renderCategoryTabs();
+                    renderSettings();
+                } else {
+                    showNotification('載入設定失敗: ' + data.message, 'error');
+                }
+            } catch (error) {
+                console.error('載入設定錯誤:', error);
+                showNotification('載入設定時發生錯誤', 'error');
+            }
+        }
+
+        // 渲染分類標籤
+        function renderCategoryTabs() {
+            const tabsContainer = document.getElementById('category-tabs');
+            const categoryNames = {
+                'theme': '🎨 主題色彩',
+                'theme_advanced': '🎯 進階主題',
+                'business': '💰 營業設定',
+                'service': '📍 服務設定',
+                'store': '🏪 商店資訊',
+                'content': '📋 頁面內容',
+                'features': '🎯 功能開關',
+                'mobile': '📱 移動端設定'
+            };
+
+            let tabsHtml = '';
+            Object.keys(allCategories).forEach(category => {
+                const displayName = categoryNames[category] || category;
+                const isActive = category === activeCategory ? 'active' : '';
+                tabsHtml += `
+                    <button class="category-tab ${isActive}" onclick="switchCategory('${category}')">
+                        ${displayName}
+                    </button>
+                `;
+            });
+
+            tabsContainer.innerHTML = tabsHtml;
+        }
+
+        // 切換分類
+        function switchCategory(category) {
+            activeCategory = category;
+            renderCategoryTabs();
+            renderSettings();
+        }
+
+        // 渲染設定項目
+        function renderSettings() {
+            const contentContainer = document.getElementById('settings-content');
+            const categorySettings = allCategories[activeCategory] || [];
+
+            let settingsHtml = `
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <h5>${getCategoryDisplayName(activeCategory)}</h5>
+                    </div>
+                    <div class="settings-group">
+            `;
+
+            categorySettings.forEach(setting => {
+                settingsHtml += renderSettingItem(setting);
+            });
+
+            settingsHtml += `
+                    </div>
+                </div>
+            `;
+
+            contentContainer.innerHTML = settingsHtml;
+        }
+
+        // 渲染單個設定項目
+        function renderSettingItem(setting) {
+            const inputHtml = generateInputHtml(setting);
+            
+            return `
+                <div class="setting-item">
+                    <div class="setting-label">
+                        <span>${setting.display_name}</span>
+                        <small class="text-muted">${setting.key}</small>
+                    </div>
+                    <div class="setting-description">${setting.description}</div>
+                    ${inputHtml}
+                </div>
+            `;
+        }
+
+        // 生成輸入控件HTML
+        function generateInputHtml(setting) {
+            switch (setting.type) {
+                case 'color':
+                    return `
+                        <div class="color-input-wrapper">
+                            <input type="color" 
+                                   class="color-input" 
+                                   id="setting_${setting.key}" 
+                                   value="${setting.value}" 
+                                   onchange="updateSetting('${setting.key}', this.value)">
+                            <input type="text" 
+                                   class="form-control d-inline-block" 
+                                   style="width: 200px;" 
+                                   value="${setting.value}" 
+                                   onchange="updateSetting('${setting.key}', this.value)"
+                                   placeholder="例如: #7cb342">
+                            <span class="color-preview" style="background-color: ${setting.value}"></span>
+                        </div>
+                    `;
+                
+                case 'number':
+                    return `
+                        <input type="number" 
+                               class="form-control" 
+                               id="setting_${setting.key}" 
+                               value="${setting.value}" 
+                               onchange="updateSetting('${setting.key}', this.value)"
+                               min="0" 
+                               step="1">
+                    `;
+                
+                case 'boolean':
+                    return `
+                        <div class="form-check form-switch">
+                            <input type="checkbox" 
+                                   class="form-check-input" 
+                                   id="setting_${setting.key}" 
+                                   ${setting.value ? 'checked' : ''} 
+                                   onchange="updateSetting('${setting.key}', this.checked)">
+                            <label class="form-check-label" for="setting_${setting.key}">
+                                ${setting.value ? '已啟用' : '已停用'}
+                            </label>
+                        </div>
+                    `;
+                
+                case 'textarea':
+                    return `
+                        <textarea class="form-control" 
+                                  id="setting_${setting.key}" 
+                                  rows="4" 
+                                  onchange="updateSetting('${setting.key}', this.value)"
+                                  placeholder="輸入內容...">${setting.value}</textarea>
+                    `;
+                
+                case 'time':
+                    return `
+                        <input type="time" 
+                               class="form-control" 
+                               id="setting_${setting.key}" 
+                               value="${setting.value}" 
+                               onchange="updateSetting('${setting.key}', this.value)">
+                    `;
+                
+                default: // text, string 等
+                    return `
+                        <input type="text" 
+                               class="form-control" 
+                               id="setting_${setting.key}" 
+                               value="${setting.value}" 
+                               onchange="updateSetting('${setting.key}', this.value)"
+                               placeholder="輸入${setting.display_name}...">
+                    `;
+            }
+        }
+
+        // 取得分類顯示名稱
+        function getCategoryDisplayName(category) {
+            const names = {
+                'theme': '🎨 主題色彩設定',
+                'theme_advanced': '🎯 進階主題設定',
+                'business': '💰 營業參數設定',
+                'service': '📍 服務範圍設定',
+                'store': '🏪 商店基本資訊',
+                'content': '📋 頁面內容管理',
+                'features': '🎯 功能開關設定',
+                'mobile': '📱 移動端參數設定'
+            };
+            return names[category] || category;
+        }
+
+        // 更新設定值
+        function updateSetting(key, value) {
+            currentSettings[key] = value;
+            
+            // 如果是顏色設定，同步更新預覽
+            if (key.includes('color')) {
+                const colorPreview = document.querySelector(`#setting_${key}`).parentElement.querySelector('.color-preview');
+                if (colorPreview) {
+                    colorPreview.style.backgroundColor = value;
+                }
+            }
+            
+            // 如果是布林值，更新標籤
+            const checkbox = document.querySelector(`#setting_${key}`);
+            if (checkbox && checkbox.type === 'checkbox') {
+                const label = document.querySelector(`label[for="setting_${key}"]`);
+                if (label) {
+                    label.textContent = value ? '已啟用' : '已停用';
+                }
+            }
+        }
+
+        // 儲存所有設定
+        async function saveAllSettings() {
+            try {
+                const saveBtn = document.querySelector('.btn-primary');
+                saveBtn.classList.add('loading');
+                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 儲存中...';
+
+                const response = await fetch('/api/admin/basic-settings/update', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ settings: currentSettings })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showNotification('設定儲存成功！', 'success');
+                } else {
+                    showNotification('儲存失敗: ' + data.message, 'error');
+                }
+            } catch (error) {
+                console.error('儲存錯誤:', error);
+                showNotification('儲存時發生錯誤', 'error');
+            } finally {
+                const saveBtn = document.querySelector('.btn-primary');
+                saveBtn.classList.remove('loading');
+                saveBtn.innerHTML = '<i class="fas fa-save"></i> 儲存設定';
+            }
+        }
+
+        // 預覽變更
+        function previewChanges() {
+            const modal = new bootstrap.Modal(document.getElementById('previewModal'));
+            const previewContent = document.getElementById('preview-content');
+            
+            previewContent.innerHTML = `
+                <div class="preview-section">
+                    <h6>🎨 色彩預覽</h6>
+                    <div class="preview-card">
+                        <div style="background: ${currentSettings.primary_color || '#2d5a3d'}; color: white; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                            主要色彩 (${currentSettings.primary_color || '#2d5a3d'})
+                        </div>
+                        <div style="background: ${currentSettings.accent_color || '#7cb342'}; color: white; padding: 1rem; border-radius: 8px;">
+                            強調色彩 (${currentSettings.accent_color || '#7cb342'})
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="preview-section">
+                    <h6>🏪 商店資訊</h6>
+                    <div class="preview-card">
+                        <h5>${currentSettings.store_name || '誠意鮮蔬'}</h5>
+                        <p class="text-muted">${currentSettings.store_slogan || '新鮮 × 健康 × 便利'}</p>
+                        <p><i class="fas fa-phone"></i> ${currentSettings.contact_phone || '02-12345678'}</p>
+                        <p><i class="fas fa-map-marker-alt"></i> ${currentSettings.contact_address || '地址未設定'}</p>
+                    </div>
+                </div>
+                
+                <div class="preview-section">
+                    <h6>💰 營業設定</h6>
+                    <div class="preview-card">
+                        <p>免運門檻: NT$ ${currentSettings.free_shipping_threshold || 300}</p>
+                        <p>配送費用: NT$ ${currentSettings.delivery_fee || 50}</p>
+                        <p>最低訂購: NT$ ${currentSettings.minimum_order_amount || 100}</p>
+                        <p>服務時間: ${currentSettings.service_hours_start || '08:00'} - ${currentSettings.service_hours_end || '20:00'}</p>
+                    </div>
+                </div>
+            `;
+            
+            modal.show();
+        }
+
+        // 重設為預設值
+        async function resetToDefaults() {
+            if (!confirm('確定要重設所有設定為預設值嗎？此操作無法復原。')) {
+                return;
+            }
+
+            try {
+                const keys = Object.keys(currentSettings);
+                const response = await fetch('/api/admin/basic-settings/reset', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ keys })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showNotification('設定已重設為預設值', 'success');
+                    loadSettings(); // 重新載入設定
+                } else {
+                    showNotification('重設失敗: ' + data.message, 'error');
+                }
+            } catch (error) {
+                console.error('重設錯誤:', error);
+                showNotification('重設時發生錯誤', 'error');
+            }
+        }
+
+        // 顯示通知
+        function showNotification(message, type = 'info') {
+            const toast = document.getElementById('notification-toast');
+            const toastBody = toast.querySelector('.toast-body');
+            const toastHeader = toast.querySelector('.toast-header');
+
+            // 設定類型樣式
+            toast.className = `toast ${type === 'error' ? 'bg-danger text-white' : type === 'success' ? 'bg-success text-white' : ''}`;
+            
+            toastBody.textContent = message;
+            
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+        }
+    </script>
+</body>
+</html>

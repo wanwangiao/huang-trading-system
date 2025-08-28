@@ -1,0 +1,83 @@
+{
+  "testDate": "2025-08-19T12:03:07.853Z",
+  "summary": {
+    "total": 11,
+    "passed": 10,
+    "failed": 1,
+    "successRate": 90.9090909090909
+  },
+  "details": [
+    {
+      "test": "錯誤密碼拒絕登入",
+      "passed": true,
+      "details": "",
+      "timestamp": "2025-08-19T12:03:07.020Z"
+    },
+    {
+      "test": "不存在用戶拒絕登入",
+      "passed": true,
+      "details": "",
+      "timestamp": "2025-08-19T12:03:07.086Z"
+    },
+    {
+      "test": "未登入存取限制 - /api/driver/available-orders",
+      "passed": true,
+      "details": "",
+      "timestamp": "2025-08-19T12:03:07.097Z"
+    },
+    {
+      "test": "未登入存取限制 - /api/driver/my-orders",
+      "passed": true,
+      "details": "",
+      "timestamp": "2025-08-19T12:03:07.100Z"
+    },
+    {
+      "test": "未登入存取限制 - /api/driver/profile",
+      "passed": true,
+      "details": "",
+      "timestamp": "2025-08-19T12:03:07.101Z"
+    },
+    {
+      "test": "外送員正確登入",
+      "passed": true,
+      "details": "",
+      "timestamp": "2025-08-19T12:03:07.250Z"
+    },
+    {
+      "test": "不存在訂單權限檢查",
+      "passed": false,
+      "details": "期望404或403，實際400",
+      "timestamp": "2025-08-19T12:03:07.329Z"
+    },
+    {
+      "test": "API回應UTF-8編碼設定",
+      "passed": true,
+      "details": "",
+      "timestamp": "2025-08-19T12:03:07.397Z"
+    },
+    {
+      "test": "中文字符正確處理",
+      "passed": true,
+      "details": "",
+      "timestamp": "2025-08-19T12:03:07.397Z"
+    },
+    {
+      "test": "中文訂單資料提交",
+      "passed": true,
+      "details": "",
+      "timestamp": "2025-08-19T12:03:07.853Z"
+    },
+    {
+      "test": "安全日誌功能",
+      "passed": true,
+      "details": "已在代碼中實施，需檢查實際日誌輸出",
+      "timestamp": "2025-08-19T12:03:07.853Z"
+    }
+  ],
+  "serverInfo": {
+    "baseUrl": "http://localhost:3003",
+    "testAccount": {
+      "phone": "0912345678"
+    }
+  }
+}
