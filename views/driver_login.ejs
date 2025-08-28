@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>外送員登入 - 承億蔬菜外送</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#27ae60">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="承億外送">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    
+    <link rel="stylesheet" href="/css/driver-portal.css">
+</head>
+<body class="login-page">
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <h1>🍃 誠意鮮蔬</h1>
+                <h2>外送員專區</h2>
+            </div>
+            
+            <% if (error) { %>
+                <div class="error-message">
+                    ⚠️ <%= error %>
+                </div>
+            <% } %>
+            
+            <form class="login-form" method="post" action="/driver/login">
+                <div class="form-group">
+                    <label for="phone">手機號碼</label>
+                    <input type="tel" id="phone" name="phone" placeholder="請輸入手機號碼" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">密碼</label>
+                    <input type="password" id="password" name="password" placeholder="請輸入密碼" required>
+                </div>
+                
+                <button type="submit" class="login-btn">
+                    🚛 登入外送系統
+                </button>
+            </form>
+            
+            <div class="login-footer">
+                <p>忘記密碼請聯絡店家</p>
+                <p class="contact">📞 02-2345-6789</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

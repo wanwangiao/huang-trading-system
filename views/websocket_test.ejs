@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebSocket 功能測試</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    
+    .panel {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      background: #f9f9f9;
+    }
+    
+    .status {
+      padding: 10px;
+      border-radius: 4px;
+      margin-bottom: 15px;
+      font-weight: bold;
+    }
+    
+    .status.connected {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    
+    .status.disconnected {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    
+    .status.connecting {
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeaa7;
+    }
+    
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+    
+    .btn-primary { background: #007bff; color: white; }
+    .btn-success { background: #28a745; color: white; }
+    .btn-warning { background: #ffc107; color: #212529; }
+    .btn-danger { background: #dc3545; color: white; }
+    
+    .log {
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 4px;
+      padding: 10px;
+      height: 200px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    
+    .log-entry {
+      margin-bottom: 2px;
+      padding: 2px 0;
+    }
+    
+    .log-time {
+      color: #666;
+      font-size: 11px;
+    }
+    
+    .log-type {
+      font-weight: bold;
+      margin: 0 5px;
+    }
+    
+    .log-type.info { color: #007bff; }
+    .log-type.success { color: #28a745; }
+    .log-type.warning { color: #ffc107; }
+    .log-type.error { color: #dc3545; }
+  </style>
+</head>
+<body>
+  <h1>🔌 WebSocket 功能測試</h1>
+  
+  <div id="connectionStatus" class="status disconnected">
+    未連接到WebSocket服務
+  </div>
+  
+  <div class="container">
+    <!-- 連接控制 -->
+    <div class="panel">
+      <h3>連接控制</h3>
+      
+      <div class="form-group">
+        <label for="userType">用戶類型:</label>
+        <select id="userType">
+          <option value="admin">管理員</option>
+          <option value="driver">外送員</option>
+          <option value="customer">客戶</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label for="userId">用戶ID:</label>
+        <input type="text" id="userId" value="test_user_1" placeholder="輸入用戶ID">
+      </div>
+      
+      <button id="connectBtn" class="btn btn-primary">連接WebSocket</button>
+      <button id="disconnectBtn" class="btn btn-danger" disabled>斷開連接</button>
+      <button id="authenticateBtn" class="btn btn-success" disabled>身份驗證</button>
+    </div>
+    
+    <!-- 房間管理 -->
+    <div class="panel">
+      <h3>房間管理</h3>
+      
+      <div class="form-group">
+        <label for="roomName">房間名稱:</label>
+        <input type="text" id="roomName" value="test_room" placeholder="輸入房間名稱">
+      </div>
+      
+      <button id="joinRoomBtn" class="btn btn-primary" disabled>加入房間</button>
+      <button id="leaveRoomBtn" class="btn btn-warning" disabled>離開房間</button>
+      
+      <div style="margin-top: 15px;">
+        <strong>預設房間:</strong>
+        <button class="btn btn-primary room-btn" data-room="admin_global" disabled>管理員全域</button>
+        <button class="btn btn-primary room-btn" data-room="drivers_global" disabled>外送員大廳</button>
+        <button class="btn btn-primary room-btn" data-room="system_monitoring" disabled>系統監控</button>
+      </div>
+    </div>
+    
+    <!-- 訊息發送 -->
+    <div class="panel">
+      <h3>訊息發送</h3>
+      
+      <div class="form-group">
+        <label for="broadcastRoom">廣播房間:</label>
+        <input type="text" id="broadcastRoom" value="test_room" placeholder="房間名稱">
+      </div>
+      
+      <div class="form-group">
+        <label for="broadcastMessage">廣播訊息:</label>
+        <textarea id="broadcastMessage" rows="3" placeholder="輸入要廣播的訊息..."></textarea>
+      </div>
+      
+      <button id="sendBroadcastBtn" class="btn btn-primary" disabled>發送廣播</button>
+      
+      <hr style="margin: 20px 0;">
+      
+      <div class="form-group">
+        <label for="privateTargetType">私訊目標類型:</label>
+        <select id="privateTargetType">
+          <option value="admin">管理員</option>
+          <option value="driver">外送員</option>
+          <option value="customer">客戶</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label for="privateTargetId">私訊目標ID:</label>
+        <input type="text" id="privateTargetId" value="test_user_2" placeholder="目標用戶ID">
+      </div>
+      
+      <div class="form-group">
+        <label for="privateMessage">私人訊息:</label>
+        <textarea id="privateMessage" rows="2" placeholder="輸入私人訊息..."></textarea>
+      </div>
+      
+      <button id="sendPrivateBtn" class="btn btn-success" disabled>發送私訊</button>
+    </div>
+    
+    <!-- 位置測試 -->
+    <div class="panel">
+      <h3>位置測試 (外送員)</h3>
+      
+      <div class="form-group">
+        <label for="lat">緯度:</label>
+        <input type="number" id="lat" value="25.0330" step="0.000001" placeholder="緯度">
+      </div>
+      
+      <div class="form-group">
+        <label for="lng">經度:</label>
+        <input type="number" id="lng" value="121.5654" step="0.000001" placeholder="經度">
+      </div>
+      
+      <button id="sendLocationBtn" class="btn btn-warning" disabled>發送位置</button>
+      <button id="startLocationBtn" class="btn btn-success" disabled>開始模擬位置</button>
+      <button id="stopLocationBtn" class="btn btn-danger" disabled>停止模擬</button>
+    </div>
+  </div>
+  
+  <!-- 日誌 -->
+  <div class="panel" style="margin-top: 20px;">
+    <h3>📋 訊息日誌</h3>
+    <div id="messageLog" class="log">
+      <div class="log-entry">
+        <span class="log-time">[初始化]</span>
+        <span class="log-type info">[INFO]</span>
+        WebSocket測試工具已載入
+      </div>
+    </div>
+    <button id="clearLogBtn" class="btn btn-warning" style="margin-top: 10px;">清除日誌</button>
+  </div>
+
+  <script src="/js/websocket-client.js"></script>
+  <script>
+    class WebSocketTester {
+      constructor() {
+        this.wsClient = new WebSocketClient();
+        this.locationTimer = null;
+        
+        this.initializeElements();
+        this.initializeEventHandlers();
+        this.initializeWebSocketHandlers();
+        
+        this.log('info', 'WebSocket測試工具已初始化');
+      }
+
+      initializeElements() {
+        this.connectionStatus = document.getElementById('connectionStatus');
+        this.connectBtn = document.getElementById('connectBtn');
+        this.disconnectBtn = document.getElementById('disconnectBtn');
+        this.authenticateBtn = document.getElementById('authenticateBtn');
+        this.userType = document.getElementById('userType');
+        this.userId = document.getElementById('userId');
+        
+        this.roomName = document.getElementById('roomName');
+        this.joinRoomBtn = document.getElementById('joinRoomBtn');
+        this.leaveRoomBtn = document.getElementById('leaveRoomBtn');
+        this.roomBtns = document.querySelectorAll('.room-btn');
+        
+        this.broadcastRoom = document.getElementById('broadcastRoom');
+        this.broadcastMessage = document.getElementById('broadcastMessage');
+        this.sendBroadcastBtn = document.getElementById('sendBroadcastBtn');
+        
+        this.privateTargetType = document.getElementById('privateTargetType');
+        this.privateTargetId = document.getElementById('privateTargetId');
+        this.privateMessage = document.getElementById('privateMessage');
+        this.sendPrivateBtn = document.getElementById('sendPrivateBtn');
+        
+        this.lat = document.getElementById('lat');
+        this.lng = document.getElementById('lng');
+        this.sendLocationBtn = document.getElementById('sendLocationBtn');
+        this.startLocationBtn = document.getElementById('startLocationBtn');
+        this.stopLocationBtn = document.getElementById('stopLocationBtn');
+        
+        this.messageLog = document.getElementById('messageLog');
+        this.clearLogBtn = document.getElementById('clearLogBtn');
+      }
+
+      initializeEventHandlers() {
+        this.connectBtn.addEventListener('click', () => this.connect());
+        this.disconnectBtn.addEventListener('click', () => this.disconnect());
+        this.authenticateBtn.addEventListener('click', () => this.authenticate());
+        
+        this.joinRoomBtn.addEventListener('click', () => this.joinRoom());
+        this.leaveRoomBtn.addEventListener('click', () => this.leaveRoom());
+        
+        this.roomBtns.forEach(btn => {
+          btn.addEventListener('click', () => {
+            this.roomName.value = btn.dataset.room;
+            this.joinRoom();
+          });
+        });
+        
+        this.sendBroadcastBtn.addEventListener('click', () => this.sendBroadcast());
+        this.sendPrivateBtn.addEventListener('click', () => this.sendPrivate());
+        
+        this.sendLocationBtn.addEventListener('click', () => this.sendLocation());
+        this.startLocationBtn.addEventListener('click', () => this.startLocationSimulation());
+        this.stopLocationBtn.addEventListener('click', () => this.stopLocationSimulation());
+        
+        this.clearLogBtn.addEventListener('click', () => this.clearLog());
+      }
+
+      initializeWebSocketHandlers() {
+        this.wsClient.on('connected', () => {
+          this.updateConnectionStatus('connected', '已連接到WebSocket服務');
+          this.updateButtonStates(true, false, true);
+          this.log('success', 'WebSocket連接成功');
+        });
+
+        this.wsClient.on('authenticated', (data) => {
+          this.log('success', `身份驗證成功: ${data.userType}_${data.userId}`);
+          this.updateButtonStates(true, true, false);
+        });
+
+        this.wsClient.on('disconnected', () => {
+          this.updateConnectionStatus('disconnected', 'WebSocket連接已斷開');
+          this.updateButtonStates(false, false, false);
+          this.log('warning', 'WebSocket連接斷開');
+        });
+
+        this.wsClient.on('join_room_result', (data) => {
+          if (data.success) {
+            this.log('success', `成功加入房間: ${data.room}`);
+          } else {
+            this.log('error', `加入房間失敗: ${data.room} - ${data.message}`);
+          }
+        });
+
+        this.wsClient.on('broadcast_message', (data) => {
+          this.log('info', `收到廣播 [${data.room}]: ${data.content}`);
+        });
+
+        this.wsClient.on('private_message', (data) => {
+          this.log('info', `收到私訊來自 ${data.sender.userType}_${data.sender.userId}: ${data.content}`);
+        });
+
+        this.wsClient.on('driver_location_update', (data) => {
+          this.log('info', `外送員位置更新: driver_${data.driverId} (${data.location.lat}, ${data.location.lng})`);
+        });
+
+        this.wsClient.on('server_error', (data) => {
+          this.log('error', `伺服器錯誤: ${data.message}`);
+        });
+      }
+
+      async connect() {
+        this.updateConnectionStatus('connecting', '正在連接WebSocket服務...');
+        this.log('info', '嘗試連接WebSocket...');
+        
+        try {
+          await this.wsClient.connect();
+        } catch (error) {
+          this.updateConnectionStatus('disconnected', '連接失敗');
+          this.log('error', `連接失敗: ${error.message}`);
+        }
+      }
+
+      disconnect() {
+        this.wsClient.disconnect();
+        this.stopLocationSimulation();
+      }
+
+      authenticate() {
+        const userType = this.userType.value;
+        const userId = this.userId.value.trim();
+        
+        if (!userId) {
+          alert('請輸入用戶ID');
+          return;
+        }
+        
+        this.wsClient.authenticate(userType, userId);
+        this.log('info', `發送身份驗證: ${userType}_${userId}`);
+      }
+
+      joinRoom() {
+        const room = this.roomName.value.trim();
+        if (!room) {
+          alert('請輸入房間名稱');
+          return;
+        }
+        
+        this.wsClient.joinRoom(room);
+        this.log('info', `嘗試加入房間: ${room}`);
+      }
+
+      leaveRoom() {
+        const room = this.roomName.value.trim();
+        if (!room) {
+          alert('請輸入房間名稱');
+          return;
+        }
+        
+        this.wsClient.leaveRoom(room);
+        this.log('info', `嘗試離開房間: ${room}`);
+      }
+
+      sendBroadcast() {
+        const room = this.broadcastRoom.value.trim();
+        const message = this.broadcastMessage.value.trim();
+        
+        if (!room || !message) {
+          alert('請輸入房間名稱和訊息內容');
+          return;
+        }
+        
+        this.wsClient.broadcast(room, message);
+        this.log('info', `發送廣播到 ${room}: ${message}`);
+        this.broadcastMessage.value = '';
+      }
+
+      sendPrivate() {
+        const targetType = this.privateTargetType.value;
+        const targetId = this.privateTargetId.value.trim();
+        const message = this.privateMessage.value.trim();
+        
+        if (!targetId || !message) {
+          alert('請輸入目標用戶ID和訊息內容');
+          return;
+        }
+        
+        this.wsClient.sendPrivateMessage(targetType, targetId, message);
+        this.log('info', `發送私訊到 ${targetType}_${targetId}: ${message}`);
+        this.privateMessage.value = '';
+      }
+
+      sendLocation() {
+        const lat = parseFloat(this.lat.value);
+        const lng = parseFloat(this.lng.value);
+        
+        if (isNaN(lat) || isNaN(lng)) {
+          alert('請輸入有效的座標');
+          return;
+        }
+        
+        this.wsClient.updateDriverLocation(lat, lng, 10, 0);
+        this.log('info', `發送位置: (${lat}, ${lng})`);
+      }
+
+      startLocationSimulation() {
+        if (this.locationTimer) {
+          this.stopLocationSimulation();
+        }
+        
+        let lat = parseFloat(this.lat.value);
+        let lng = parseFloat(this.lng.value);
+        
+        this.locationTimer = setInterval(() => {
+          // 模擬移動：隨機偏移座標
+          lat += (Math.random() - 0.5) * 0.001;
+          lng += (Math.random() - 0.5) * 0.001;
+          
+          this.lat.value = lat.toFixed(6);
+          this.lng.value = lng.toFixed(6);
+          
+          this.wsClient.updateDriverLocation(lat, lng, 10, 50);
+        }, 3000);
+        
+        this.log('info', '開始位置模擬 (每3秒更新一次)');
+        this.startLocationBtn.disabled = true;
+        this.stopLocationBtn.disabled = false;
+      }
+
+      stopLocationSimulation() {
+        if (this.locationTimer) {
+          clearInterval(this.locationTimer);
+          this.locationTimer = null;
+          this.log('info', '停止位置模擬');
+          this.startLocationBtn.disabled = false;
+          this.stopLocationBtn.disabled = true;
+        }
+      }
+
+      updateConnectionStatus(status, message) {
+        this.connectionStatus.className = `status ${status}`;
+        this.connectionStatus.textContent = message;
+      }
+
+      updateButtonStates(connected, authenticated, needAuth) {
+        this.connectBtn.disabled = connected;
+        this.disconnectBtn.disabled = !connected;
+        this.authenticateBtn.disabled = !needAuth;
+        
+        this.joinRoomBtn.disabled = !authenticated;
+        this.leaveRoomBtn.disabled = !authenticated;
+        this.sendBroadcastBtn.disabled = !authenticated;
+        this.sendPrivateBtn.disabled = !authenticated;
+        this.sendLocationBtn.disabled = !authenticated;
+        this.startLocationBtn.disabled = !authenticated;
+        
+        this.roomBtns.forEach(btn => {
+          btn.disabled = !authenticated;
+        });
+      }
+
+      log(type, message) {
+        const timestamp = new Date().toLocaleTimeString('zh-TW');
+        const logEntry = document.createElement('div');
+        logEntry.className = 'log-entry';
+        logEntry.innerHTML = `
+          <span class="log-time">[${timestamp}]</span>
+          <span class="log-type ${type}">[${type.toUpperCase()}]</span>
+          ${message}
+        `;
+        
+        this.messageLog.appendChild(logEntry);
+        this.messageLog.scrollTop = this.messageLog.scrollHeight;
+        
+        // 限制日誌條目數量
+        const entries = this.messageLog.children;
+        if (entries.length > 100) {
+          this.messageLog.removeChild(entries[0]);
+        }
+      }
+
+      clearLog() {
+        this.messageLog.innerHTML = '';
+        this.log('info', '日誌已清除');
+      }
+    }
+
+    // 初始化測試工具
+    document.addEventListener('DOMContentLoaded', () => {
+      new WebSocketTester();
+    });
+  </script>
+</body>
+</html>

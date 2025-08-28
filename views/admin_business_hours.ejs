@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>營業時間管理 - 誠意鮮蔬後台</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        /* 🏢 後台營業時間管理專用樣式 */
+        .admin-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(45, 90, 61, 0.12);
+        }
+        
+        .admin-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid rgba(124, 179, 66, 0.2);
+        }
+        
+        .admin-title {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #2d4a3a;
+            margin-bottom: 0.5rem;
+        }
+        
+        .admin-nav {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .nav-links a {
+            display: inline-block;
+            margin: 0 1rem;
+            padding: 0.5rem 1rem;
+            background: rgba(124, 179, 66, 0.1);
+            border-radius: 15px;
+            text-decoration: none;
+            color: #2d4a3a;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-links a:hover {
+            background: rgba(124, 179, 66, 0.2);
+            transform: translateY(-1px);
+        }
+        
+        .hours-form {
+            background: rgba(248, 255, 254, 0.8);
+            padding: 2rem;
+            border-radius: 16px;
+            border: 1px solid rgba(124, 179, 66, 0.2);
+        }
+        
+        .day-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .day-label {
+            width: 80px;
+            font-weight: 600;
+            color: #2d4a3a;
+        }
+        
+        .time-inputs {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex: 1;
+        }
+        
+        .time-input {
+            padding: 0.5rem;
+            border: 2px solid rgba(124, 179, 66, 0.3);
+            border-radius: 8px;
+            font-family: monospace;
+        }
+        
+        .closed-checkbox {
+            margin-left: 1rem;
+        }
+        
+        .save-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #7cb342 0%, #8bc34a 100%);
+            color: white;
+            border: none;
+            padding: 1rem;
+            border-radius: 15px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 2rem;
+        }
+        
+        .save-btn:hover {
+            background: linear-gradient(135deg, #689f38 0%, #7cb342 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(124, 179, 66, 0.4);
+        }
+        
+        .preview-section {
+            background: rgba(124, 179, 66, 0.05);
+            padding: 1.5rem;
+            border-radius: 16px;
+            margin-top: 2rem;
+            border-left: 4px solid #7cb342;
+        }
+        
+        .preview-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #2d4a3a;
+            margin-bottom: 1rem;
+        }
+        
+        .preview-hours {
+            display: grid;
+            gap: 0.5rem;
+        }
+        
+        .preview-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem;
+            background: white;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <div class="admin-header">
+            <h1 class="admin-title">🕰️ 營業時間管理</h1>
+            <p>設定每日營業時間與公休日</p>
+        </div>
+        
+        <div class="admin-nav">
+            <div class="nav-links">
+                <a href="/admin/orders">訂單管理</a>
+                <a href="/admin/products">商品管理</a>
+                <a href="/admin/business-hours" style="background: #7cb342; color: white;">營業時間</a>
+                <a href="/admin/logout">登出</a>
+            </div>
+        </div>
+        
+        <div class="hours-form">
+            <form id="business-hours-form">
+                <div class="day-row">
+                    <div class="day-label">星期一</div>
+                    <div class="time-inputs">
+                        <input type="time" name="monday_open" class="time-input" value="06:00">
+                        <span>-</span>
+                        <input type="time" name="monday_close" class="time-input" value="13:00">
+                        <label class="closed-checkbox">
+                            <input type="checkbox" name="monday_closed"> 公休
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="day-row">
+                    <div class="day-label">星期二</div>
+                    <div class="time-inputs">
+                        <input type="time" name="tuesday_open" class="time-input" value="06:00">
+                        <span>-</span>
+                        <input type="time" name="tuesday_close" class="time-input" value="13:00">
+                        <label class="closed-checkbox">
+                            <input type="checkbox" name="tuesday_closed"> 公休
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="day-row">
+                    <div class="day-label">星期三</div>
+                    <div class="time-inputs">
+                        <input type="time" name="wednesday_open" class="time-input" value="06:00">
+                        <span>-</span>
+                        <input type="time" name="wednesday_close" class="time-input" value="13:00">
+                        <label class="closed-checkbox">
+                            <input type="checkbox" name="wednesday_closed"> 公休
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="day-row">
+                    <div class="day-label">星期四</div>
+                    <div class="time-inputs">
+                        <input type="time" name="thursday_open" class="time-input" value="06:00">
+                        <span>-</span>
+                        <input type="time" name="thursday_close" class="time-input" value="13:00">
+                        <label class="closed-checkbox">
+                            <input type="checkbox" name="thursday_closed"> 公休
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="day-row">
+                    <div class="day-label">星期五</div>
+                    <div class="time-inputs">
+                        <input type="time" name="friday_open" class="time-input" value="06:00">
+                        <span>-</span>
+                        <input type="time" name="friday_close" class="time-input" value="13:00">
+                        <label class="closed-checkbox">
+                            <input type="checkbox" name="friday_closed"> 公休
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="day-row">
+                    <div class="day-label">星期六</div>
+                    <div class="time-inputs">
+                        <input type="time" name="saturday_open" class="time-input" value="06:00">
+                        <span>-</span>
+                        <input type="time" name="saturday_close" class="time-input" value="13:00">
+                        <label class="closed-checkbox">
+                            <input type="checkbox" name="saturday_closed"> 公休
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="day-row">
+                    <div class="day-label">星期日</div>
+                    <div class="time-inputs">
+                        <input type="time" name="sunday_open" class="time-input" value="06:00">
+                        <span>-</span>
+                        <input type="time" name="sunday_close" class="time-input" value="13:00">
+                        <label class="closed-checkbox">
+                            <input type="checkbox" name="sunday_closed" checked> 公休
+                        </label>
+                    </div>
+                </div>
+                
+                <button type="submit" class="save-btn">💾 儲存營業時間</button>
+            </form>
+        </div>
+        
+        <div class="preview-section">
+            <div class="preview-title">📋 目前營業時間預覽</div>
+            <div class="preview-hours" id="preview-hours">
+                <!-- 預覽內容將通過 JavaScript 動態更新 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 🕰️ 營業時間管理 JavaScript
+        
+        // 更新預覽顯示
+        function updatePreview() {
+            const previewContainer = document.getElementById('preview-hours');
+            const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+            const dayNames = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日'];
+            
+            let html = '';
+            days.forEach((day, index) => {
+                const openTime = document.querySelector(`[name="${day}_open"]`).value;
+                const closeTime = document.querySelector(`[name="${day}_close"]`).value;
+                const isClosed = document.querySelector(`[name="${day}_closed"]`).checked;
+                
+                html += `
+                    <div class="preview-item">
+                        <span>${dayNames[index]}</span>
+                        <span style="color: ${isClosed ? '#ff8a65' : '#7cb342'}; font-weight: 600;">
+                            ${isClosed ? '公休' : `${openTime} - ${closeTime}`}
+                        </span>
+                    </div>
+                `;
+            });
+            
+            previewContainer.innerHTML = html;
+        }
+        
+        // 監聽表單變化
+        document.addEventListener('input', updatePreview);
+        document.addEventListener('change', updatePreview);
+        
+        // 表單提交
+        document.getElementById('business-hours-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const data = {};
+            
+            // 收集表單數據
+            for (let [key, value] of formData.entries()) {
+                data[key] = value;
+            }
+            
+            try {
+                const response = await fetch('/admin/business-hours', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    alert('✅ 營業時間設定已儲存！');
+                } else {
+                    alert('❌ 儲存失敗，請稍後再試。');
+                }
+            } catch (error) {
+                console.error('儲存失敗:', error);
+                alert('❌ 儲存失敗，請稍後再試。');
+            }
+        });
+        
+        // 頁面載入時更新預覽
+        document.addEventListener('DOMContentLoaded', updatePreview);
+    </script>
+</body>
+</html>

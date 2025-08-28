@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8">
+    <title>訂單完成</title>
+    <link rel="stylesheet" href="/css/styles.css">
+  </head>
+  <body>
+    <h1>訂單完成</h1>
+    <p>訂單編號：<%= order.id %></p>
+    <p>總金額：$<%= order.total %>（小計：$<%= order.subtotal %>，運費：$<%= order.delivery_fee %>）</p>
+    <p>感謝您的訂購！</p>
+    <% if (sessionLine) { %>
+      <p>您的 LINE 已綁定，我們會透過 LINE 通知您訂單狀態。</p>
+    <% } else { %>
+      <p><a href="/auth/line/login">點此綁定 LINE</a>，以便接收訂單通知。</p>
+    <% } %>
+    <p><a href="/">回首頁</a></p>
+  </body>
+</html>

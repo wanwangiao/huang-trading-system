@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>路線優化管理 - 承億蔬菜外送系統</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .route-card {
+            border-left: 4px solid #28a745;
+            margin-bottom: 20px;
+        }
+        .stats-card {
+            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+            color: #2c3e50;
+        }
+        .loading-spinner {
+            display: none;
+        }
+        .optimization-result {
+            display: none;
+        }
+        .cluster-info {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .route-waypoints {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .order-item {
+            padding: 8px;
+            margin: 5px 0;
+            background-color: #fff;
+            border-radius: 5px;
+            border-left: 3px solid #007bff;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-success">
+        <div class="container">
+            <a class="navbar-brand" href="/admin">
+                <i class="fas fa-route"></i> 承億蔬菜外送系統 - 路線優化
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/admin">
+                            <i class="fas fa-tachometer-alt"></i> 後台首頁
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/admin/orders">
+                            <i class="fas fa-shopping-cart"></i> 訂單管理
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/admin/route-optimization">
+                            <i class="fas fa-route"></i> 路線優化
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- 系統狀態檢查 -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-info-circle"></i> 系統狀態
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="system-status">
+                            <div class="d-flex justify-content-center">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">載入中...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 優化控制面板 -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-cogs"></i> 路線優化設定
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="optimization-form">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <label for="clusteringMethod" class="form-label">聚類方法</label>
+                                    <select class="form-select" id="clusteringMethod" name="clusteringMethod">
+                                        <option value="kmeans">K-means 聚類</option>
+                                        <option value="adaptive">自適應聚類</option>
+                                        <option value="density">密度聚類</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="optimizationMethod" class="form-label">優化算法</label>
+                                    <select class="form-select" id="optimizationMethod" name="optimizationMethod">
+                                        <option value="hybrid">混合算法</option>
+                                        <option value="nearest">最近鄰算法</option>
+                                        <option value="2opt">2-opt 改進</option>
+                                        <option value="annealing">模擬退火</option>
+                                        <option value="genetic">遺傳算法</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="maxClusters" class="form-label">最大聚類數</label>
+                                    <input type="number" class="form-control" id="maxClusters" name="maxClusters" 
+                                           min="1" max="10" placeholder="自動決定">
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="includeStatuses" class="form-label">包含訂單狀態</label>
+                                    <select class="form-select" id="includeStatuses" name="includeStatuses">
+                                        <option value="ready">包裝完成</option>
+                                        <option value="delivering">配送中</option>
+                                        <option value="ready,delivering">全部待配送</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <button type="submit" class="btn btn-primary btn-lg">
+                                        <i class="fas fa-play"></i> 開始路線優化
+                                    </button>
+                                    <button type="button" class="btn btn-secondary ms-2" onclick="loadOptimizationHistory()">
+                                        <i class="fas fa-history"></i> 查看歷史記錄
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 載入動畫 -->
+        <div class="row loading-spinner">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="visually-hidden">優化中...</span>
+                        </div>
+                        <h5>正在進行路線優化...</h5>
+                        <p class="text-muted">這可能需要幾秒鐘的時間，請稍候</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 優化結果 -->
+        <div class="optimization-result">
+            <!-- 總體統計 -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card stats-card text-center">
+                        <div class="card-body">
+                            <i class="fas fa-shopping-cart fa-2x mb-2"></i>
+                            <h4 id="total-orders">0</h4>
+                            <p class="mb-0">總訂單數</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stats-card text-center">
+                        <div class="card-body">
+                            <i class="fas fa-route fa-2x mb-2"></i>
+                            <h4 id="total-routes">0</h4>
+                            <p class="mb-0">優化路線數</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stats-card text-center">
+                        <div class="card-body">
+                            <i class="fas fa-road fa-2x mb-2"></i>
+                            <h4 id="total-distance">0</h4>
+                            <p class="mb-0">總距離 (km)</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stats-card text-center">
+                        <div class="card-body">
+                            <i class="fas fa-clock fa-2x mb-2"></i>
+                            <h4 id="total-time">0</h4>
+                            <p class="mb-0">預估時間 (分鐘)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 路線詳情 -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-list"></i> 優化路線詳情
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="routes-container">
+                                <!-- 路線將通過 JavaScript 動態載入 -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 頁面載入時檢查系統狀態
+        document.addEventListener('DOMContentLoaded', function() {
+            checkSystemStatus();
+        });
+
+        // 檢查系統狀態
+        async function checkSystemStatus() {
+            try {
+                const response = await fetch('/api/admin/route-optimization/status');
+                const status = await response.json();
+                
+                const statusContainer = document.getElementById('system-status');
+                
+                if (status.initialized) {
+                    statusContainer.innerHTML = `
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="alert alert-success">
+                                    <i class="fas fa-check-circle"></i> 路線優化服務已就緒
+                                </div>
+                                <h6>配送中心</h6>
+                                <p class="mb-0">📍 ${status.depot.name}</p>
+                                <p class="text-muted small">${status.depot.address}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>系統能力</h6>
+                                <ul class="list-unstyled small">
+                                    <li>🚚 每條路線最多 ${status.capabilities.maxOrdersPerRoute} 個訂單</li>
+                                    <li>🗂️ 最多 ${status.capabilities.maxClusters} 個聚類</li>
+                                    <li>📋 支援狀態: ${status.capabilities.supportedStatuses.join(', ')}</li>
+                                </ul>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    statusContainer.innerHTML = `
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i> ${status.message || '路線優化服務未就緒'}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('檢查系統狀態失敗:', error);
+                document.getElementById('system-status').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-times-circle"></i> 無法連接到路線優化服務
+                    </div>
+                `;
+            }
+        }
+
+        // 處理優化表單提交
+        document.getElementById('optimization-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // 顯示載入動畫
+            document.querySelector('.loading-spinner').style.display = 'block';
+            document.querySelector('.optimization-result').style.display = 'none';
+            
+            try {
+                const formData = new FormData(this);
+                const options = {
+                    clusteringMethod: formData.get('clusteringMethod'),
+                    optimizationMethod: formData.get('optimizationMethod'),
+                    includeStatuses: formData.get('includeStatuses').split(',')
+                };
+                
+                if (formData.get('maxClusters')) {
+                    options.maxClusters = parseInt(formData.get('maxClusters'));
+                }
+                
+                const response = await fetch('/api/admin/route-optimization/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(options)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayOptimizationResult(result);
+                } else {
+                    throw new Error(result.message || '優化失敗');
+                }
+                
+            } catch (error) {
+                console.error('路線優化失敗:', error);
+                alert('路線優化失敗: ' + error.message);
+            } finally {
+                document.querySelector('.loading-spinner').style.display = 'none';
+            }
+        });
+
+        // 顯示優化結果
+        function displayOptimizationResult(result) {
+            // 更新統計數據
+            document.getElementById('total-orders').textContent = result.overallStats.totalOrders;
+            document.getElementById('total-routes').textContent = result.overallStats.totalRoutes;
+            document.getElementById('total-distance').textContent = result.overallStats.totalDistance;
+            document.getElementById('total-time').textContent = result.overallStats.estimatedTotalTime;
+            
+            // 生成路線詳情
+            const routesContainer = document.getElementById('routes-container');
+            routesContainer.innerHTML = '';
+            
+            if (result.routes.length === 0) {
+                routesContainer.innerHTML = `
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> 沒有找到需要優化的訂單
+                    </div>
+                `;
+            } else {
+                result.routes.forEach((route, index) => {
+                    const routeCard = createRouteCard(route, index + 1);
+                    routesContainer.appendChild(routeCard);
+                });
+            }
+            
+            // 顯示結果
+            document.querySelector('.optimization-result').style.display = 'block';
+            
+            // 滾動到結果區域
+            document.querySelector('.optimization-result').scrollIntoView({ 
+                behavior: 'smooth' 
+            });
+        }
+
+        // 創建路線卡片
+        function createRouteCard(route, routeNumber) {
+            const card = document.createElement('div');
+            card.className = 'route-card card mb-3';
+            
+            const estimatedHours = Math.floor(route.estimatedTime.totalMinutes / 60);
+            const estimatedMinutes = route.estimatedTime.totalMinutes % 60;
+            const timeText = estimatedHours > 0 ? 
+                `${estimatedHours}小時${estimatedMinutes}分鐘` : 
+                `${estimatedMinutes}分鐘`;
+            
+            card.innerHTML = `
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">
+                            <i class="fas fa-route"></i> 路線 ${routeNumber} 
+                            (${route.orders.length} 個訂單)
+                        </h6>
+                        <div>
+                            <span class="badge bg-primary me-2">
+                                ${route.totalDistance.toFixed(1)} km
+                            </span>
+                            <span class="badge bg-info me-2">
+                                ${timeText}
+                            </span>
+                            <span class="badge bg-success">
+                                NT$ ${route.stats.totalValue.toFixed(0)}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h6>📋 配送訂單</h6>
+                            <div class="route-waypoints">
+                                ${route.orders.map((order, index) => `
+                                    <div class="order-item">
+                                        <div class="d-flex justify-content-between">
+                                            <div>
+                                                <strong>${index + 1}. ${order.contact_name}</strong>
+                                                <br>
+                                                <small class="text-muted">
+                                                    📞 ${order.contact_phone} | 
+                                                    📍 ${order.address}
+                                                </small>
+                                            </div>
+                                            <div class="text-end">
+                                                <span class="badge bg-success">
+                                                    NT$ ${parseFloat(order.total_amount).toFixed(0)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <h6>📊 路線統計</h6>
+                            <ul class="list-unstyled small">
+                                <li>🚗 行駛距離: ${route.totalDistance.toFixed(1)} km</li>
+                                <li>⏱️ 行駛時間: ${route.estimatedTime.drivingMinutes} 分鐘</li>
+                                <li>⏹️ 停留時間: ${route.estimatedTime.stopMinutes} 分鐘</li>
+                                <li>💰 路線價值: NT$ ${route.stats.totalValue.toFixed(0)}</li>
+                                <li>🎯 平均距離: ${route.stats.averageDistance.toFixed(1)} km</li>
+                                <li>🔧 優化方法: ${route.optimizationMethod}</li>
+                            </ul>
+                            
+                            <div class="mt-3">
+                                <a href="${route.googleMapsUrl}" target="_blank" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-map"></i> 在 Google Maps 中查看
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            return card;
+        }
+
+        // 載入優化歷史記錄（待實現）
+        function loadOptimizationHistory() {
+            alert('優化歷史記錄功能開發中...');
+        }
+    </script>
+</body>
+</html>

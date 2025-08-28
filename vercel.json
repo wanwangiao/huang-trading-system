@@ -1,0 +1,32 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "src/server.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "public/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/line/webhook",
+      "dest": "/src/server.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/src/server.js"
+    }
+  ],
+  "env": {
+    "DATABASE_URL": "postgresql://postgres.cywcuzgbuqmxjxwyrrsp:Chengyi2025%21Fresh@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres",
+    "NODE_ENV": "production",
+    "LINE_CHANNEL_ID": "2007891772",
+    "LINE_CHANNEL_SECRET": "35bc80bb75f95d22a49aaaf8772eef38",
+    "LINE_CHANNEL_ACCESS_TOKEN": "Rb4HdoTx3gV7skydMOJy4/0xw09IpOc9djST7z5eSEs+CccUAfsdtrPlI3SEEQya+Npz6+OW6B8un+Tfr6sJ6dw3Aab1Y+kLng21ZAXjO0sYYS7ILLzH4ccNVRDh8Xnv3ch0DTDNGT8pc+7bGZjruAdB04t89/1O/w1cDnyilFU=",
+    "LINE_LIFF_ID": "2007966099-qXjNxbXN",
+    "GOOGLE_MAPS_API_KEY": "AIzaSyBRwW-NMUDGMXaDhvl3oYJs_OqjfXWTTNE"
+  }
+}

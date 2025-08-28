@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>統計報表 - 誠意鮮蔬管理後台</title>
+    <link rel="stylesheet" href="/css/admin-dashboard.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@2.29.0/index.min.js"></script>
+    <style>
+        .reports-container {
+            padding: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        .reports-header {
+            background: linear-gradient(135deg, #8e44ad, #9b59b6);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .report-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .control-group label {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+        
+        .control-group select, .control-group input {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .tabs-container {
+            margin-bottom: 30px;
+        }
+        
+        .tabs {
+            display: flex;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 15px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            background: #f8f9fa;
+            color: #2c3e50;
+        }
+        
+        .tab.active {
+            background: #3498db;
+            color: white;
+        }
+        
+        .tab:hover:not(.active) {
+            background: #e9ecef;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .chart-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .chart-header {
+            background: #34495e;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .chart-content {
+            padding: 20px;
+            position: relative;
+            height: 400px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--accent-color, #3498db);
+        }
+        
+        .stat-card.revenue { --accent-color: #27ae60; }
+        .stat-card.orders { --accent-color: #3498db; }
+        .stat-card.customers { --accent-color: #f39c12; }
+        .stat-card.profit { --accent-color: #e74c3c; }
+        
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: var(--accent-color);
+            margin: 10px 0;
+        }
+        
+        .stat-change {
+            font-size: 0.9em;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        
+        .stat-change.positive {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .stat-change.negative {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .data-table {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .table-header {
+            background: #34495e;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .table-content {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .data-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+            padding: 15px 20px;
+            border-bottom: 1px solid #ecf0f1;
+            align-items: center;
+        }
+        
+        .data-row:nth-child(even) {
+            background: #f8f9fa;
+        }
+        
+        .data-row.header {
+            background: #ecf0f1;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #ecf0f1;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: #3498db;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary { background: #3498db; color: white; }
+        .btn-success { background: #27ae60; color: white; }
+        .btn-info { background: #17a2b8; color: white; }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .breadcrumb {
+            margin-bottom: 20px;
+            color: #7f8c8d;
+        }
+        
+        .breadcrumb a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        
+        .insights-panel {
+            background: #f8f9fa;
+            border-left: 4px solid #3498db;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 6px;
+        }
+        
+        .insight-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .insight-icon {
+            font-size: 1.2em;
+        }
+        
+        @media (max-width: 1200px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .report-controls {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="reports-container">
+        <!-- 麵包屑導航 -->
+        <div class="breadcrumb">
+            <a href="/admin/dashboard">管理後台</a> > <span>統計報表</span>
+        </div>
+        
+        <!-- 報表標題和控制項 -->
+        <div class="reports-header">
+            <div>
+                <h1>📈 統計報表分析</h1>
+                <p>數據驅動決策，洞察業務趨勢</p>
+            </div>
+            <div class="report-controls">
+                <div class="control-group">
+                    <label>時間範圍</label>
+                    <select id="timeRange">
+                        <option value="7">近7天</option>
+                        <option value="30" selected>近30天</option>
+                        <option value="90">近90天</option>
+                        <option value="365">近一年</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>比較基準</label>
+                    <select id="compareWith">
+                        <option value="previous">上一期間</option>
+                        <option value="lastYear">去年同期</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" onclick="refreshReports()">🔄 更新</button>
+            </div>
+        </div>
+        
+        <!-- 報表類型選項卡 -->
+        <div class="tabs-container">
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('revenue')">💰 營收分析</button>
+                <button class="tab" onclick="switchTab('products')">🥬 商品分析</button>
+                <button class="tab" onclick="switchTab('customers')">👥 客戶分析</button>
+                <button class="tab" onclick="switchTab('delivery')">🚚 配送分析</button>
+            </div>
+        </div>
+        
+        <!-- 營收分析 -->
+        <div id="revenue" class="tab-content active">
+            <!-- 營收統計卡片 -->
+            <div class="stats-grid">
+                <div class="stat-card revenue">
+                    <h3>💰 總營業額</h3>
+                    <div class="stat-value" id="totalRevenue">$287,650</div>
+                    <div class="stat-change positive">+8.3% 較上月</div>
+                </div>
+                <div class="stat-card orders">
+                    <h3>📦 總訂單數</h3>
+                    <div class="stat-value" id="totalOrders">1,247</div>
+                    <div class="stat-change positive">+12.5% 較上月</div>
+                </div>
+                <div class="stat-card customers">
+                    <h3>🛒 平均客單價</h3>
+                    <div class="stat-value" id="avgOrderValue">$231</div>
+                    <div class="stat-change negative">-2.1% 較上月</div>
+                </div>
+                <div class="stat-card profit">
+                    <h3>💎 毛利率</h3>
+                    <div class="stat-value" id="profitMargin">42.5%</div>
+                    <div class="stat-change positive">+1.2% 較上月</div>
+                </div>
+            </div>
+            
+            <!-- 營收趨勢圖表 -->
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>📊 營收趨勢</h3>
+                        <div class="export-buttons">
+                            <button class="btn btn-info" onclick="exportChart('revenue')">📊 匯出圖表</button>
+                        </div>
+                    </div>
+                    <div class="chart-content">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>🗺️ 區域營收分布</h3>
+                    </div>
+                    <div class="chart-content">
+                        <canvas id="regionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 智能洞察 -->
+            <div class="insights-panel">
+                <h4>💡 智能分析洞察</h4>
+                <div class="insight-item">
+                    <span class="insight-icon">📈</span>
+                    <span>本月營收較上月成長 8.3%，主要來自三峽區客戶增加</span>
+                </div>
+                <div class="insight-item">
+                    <span class="insight-icon">🎯</span>
+                    <span>週六營收最高，建議加強週末促銷活動</span>
+                </div>
+                <div class="insight-item">
+                    <span class="insight-icon">⚠️</span>
+                    <span>平均客單價下降 2.1%，建議推出套餐組合提升客單價</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 商品分析 -->
+        <div id="products" class="tab-content">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>🏆 熱銷商品</h3>
+                    <div class="stat-value">23 種</div>
+                    <div class="stat-change positive">+3 較上月</div>
+                </div>
+                <div class="stat-card">
+                    <h3>📉 滯銷商品</h3>
+                    <div class="stat-value">2 種</div>
+                    <div class="stat-change negative">-1 較上月</div>
+                </div>
+                <div class="stat-card">
+                    <h3>💰 最高毛利</h3>
+                    <div class="stat-value">60%</div>
+                    <div class="stat-change positive">胡蘿蔔</div>
+                </div>
+                <div class="stat-card">
+                    <h3>🔄 週轉率</h3>
+                    <div class="stat-value">8.2</div>
+                    <div class="stat-change positive">+0.5 較上月</div>
+                </div>
+            </div>
+            
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>🏆 熱銷商品排行</h3>
+                    </div>
+                    <div class="chart-content">
+                        <canvas id="topProductsChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="data-table">
+                    <div class="table-header">
+                        <h3>📊 商品銷售詳情</h3>
+                        <button class="btn btn-success" onclick="exportTable('products')">📄 匯出Excel</button>
+                    </div>
+                    <div class="table-content">
+                        <div class="data-row header">
+                            <div>商品名稱</div>
+                            <div>銷售量</div>
+                            <div>營收</div>
+                            <div>毛利率</div>
+                            <div>趨勢</div>
+                        </div>
+                        <div class="data-row">
+                            <div>🥬 高麗菜</div>
+                            <div>456顆</div>
+                            <div>$36,480</div>
+                            <div>45%</div>
+                            <div><div class="progress-bar"><div class="progress-fill" style="width: 90%;"></div></div></div>
+                        </div>
+                        <div class="data-row">
+                            <div>🍇 葡萄</div>
+                            <div>234串</div>
+                            <div>$29,250</div>
+                            <div>38%</div>
+                            <div><div class="progress-bar"><div class="progress-fill" style="width: 75%;"></div></div></div>
+                        </div>
+                        <div class="data-row">
+                            <div>🥬 大白菜</div>
+                            <div>189顆</div>
+                            <div>$22,680</div>
+                            <div>52%</div>
+                            <div><div class="progress-bar"><div class="progress-fill" style="width: 60%;"></div></div></div>
+                        </div>
+                        <div class="data-row">
+                            <div>🍅 番茄</div>
+                            <div>567斤</div>
+                            <div>$22,110</div>
+                            <div>35%</div>
+                            <div><div class="progress-bar"><div class="progress-fill" style="width: 58%;"></div></div></div>
+                        </div>
+                        <div class="data-row">
+                            <div>🥕 胡蘿蔔</div>
+                            <div>345包</div>
+                            <div>$20,700</div>
+                            <div>60%</div>
+                            <div><div class="progress-bar"><div class="progress-fill" style="width: 55%;"></div></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 客戶分析 -->
+        <div id="customers" class="tab-content">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>👤 總客戶數</h3>
+                    <div class="stat-value">1,456</div>
+                    <div class="stat-change positive">+15.3% 較上月</div>
+                </div>
+                <div class="stat-card">
+                    <h3>🔄 回購率</h3>
+                    <div class="stat-value">68%</div>
+                    <div class="stat-change positive">+5.2% 較上月</div>
+                </div>
+                <div class="stat-card">
+                    <h3>🆕 新客戶</h3>
+                    <div class="stat-value">234</div>
+                    <div class="stat-change positive">+8.7% 較上月</div>
+                </div>
+                <div class="stat-card">
+                    <h3>💎 VIP客戶</h3>
+                    <div class="stat-value">89</div>
+                    <div class="stat-change positive">+12 較上月</div>
+                </div>
+            </div>
+            
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>👥 客戶分布</h3>
+                    </div>
+                    <div class="chart-content">
+                        <canvas id="customerChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>🗺️ 地區分布</h3>
+                    </div>
+                    <div class="chart-content">
+                        <canvas id="locationChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 配送分析 -->
+        <div id="delivery" class="tab-content">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>⏰ 平均配送時間</h3>
+                    <div class="stat-value">42分</div>
+                    <div class="stat-change positive">-3分 較上月</div>
+                </div>
+                <div class="stat-card">
+                    <h3>✅ 準時率</h3>
+                    <div class="stat-value">94.2%</div>
+                    <div class="stat-change positive">+2.1% 較上月</div>
+                </div>
+                <div class="stat-card">
+                    <h3>💰 配送成本</h3>
+                    <div class="stat-value">$12,450</div>
+                    <div class="stat-change negative">+3.2% 較上月</div>
+                </div>
+                <div class="stat-card">
+                    <h3>😊 客戶滿意度</h3>
+                    <div class="stat-value">4.8</div>
+                    <div class="stat-change positive">+0.2 較上月</div>
+                </div>
+            </div>
+            
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>⏰ 配送時間分布</h3>
+                    </div>
+                    <div class="chart-content">
+                        <canvas id="deliveryTimeChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>📊 配送效率趨勢</h3>
+                    </div>
+                    <div class="chart-content">
+                        <canvas id="deliveryEfficiencyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局變數
+        let charts = {};
+        
+        // 初始化所有圖表
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCharts();
+        });
+        
+        // 切換選項卡
+        function switchTab(tabName) {
+            // 移除所有active class
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // 添加active class
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+            
+            // 重新繪製圖表
+            setTimeout(() => {
+                Object.values(charts).forEach(chart => {
+                    if (chart && chart.resize) {
+                        chart.resize();
+                    }
+                });
+            }, 100);
+        }
+        
+        // 初始化圖表
+        function initializeCharts() {
+            // 營收趨勢圖
+            const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+            charts.revenue = new Chart(revenueCtx, {
+                type: 'line',
+                data: {
+                    labels: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月'],
+                    datasets: [{
+                        label: '營業額 (千元)',
+                        data: [186, 205, 234, 267, 298, 312, 289, 287],
+                        borderColor: '#27ae60',
+                        backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            
+            // 區域分布圓餅圖
+            const regionCtx = document.getElementById('regionChart').getContext('2d');
+            charts.region = new Chart(regionCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['三峽區', '北大特區', '樹林區', '鶯歌區', '土城區'],
+                    datasets: [{
+                        data: [34.2, 30.0, 20.0, 10.0, 5.8],
+                        backgroundColor: [
+                            '#3498db',
+                            '#e74c3c',
+                            '#f39c12',
+                            '#27ae60',
+                            '#9b59b6'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+            
+            // 熱銷商品條形圖
+            const topProductsCtx = document.getElementById('topProductsChart').getContext('2d');
+            charts.topProducts = new Chart(topProductsCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['高麗菜', '葡萄', '大白菜', '番茄', '胡蘿蔔'],
+                    datasets: [{
+                        label: '銷售額 (千元)',
+                        data: [36.48, 29.25, 22.68, 22.11, 20.70],
+                        backgroundColor: [
+                            '#3498db',
+                            '#e74c3c',
+                            '#f39c12',
+                            '#27ae60',
+                            '#9b59b6'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            
+            // 客戶分布圖
+            const customerCtx = document.getElementById('customerChart').getContext('2d');
+            charts.customer = new Chart(customerCtx, {
+                type: 'radar',
+                data: {
+                    labels: ['新客戶', '回購客戶', 'VIP客戶', '活躍客戶', '流失客戶'],
+                    datasets: [{
+                        label: '客戶分析',
+                        data: [85, 92, 78, 88, 25],
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                        pointBackgroundColor: '#3498db'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+            
+            // 地區分布圖
+            const locationCtx = document.getElementById('locationChart').getContext('2d');
+            charts.location = new Chart(locationCtx, {
+                type: 'polarArea',
+                data: {
+                    labels: ['三峽區', '北大特區', '樹林區', '鶯歌區', '土城區'],
+                    datasets: [{
+                        data: [498, 430, 287, 144, 83],
+                        backgroundColor: [
+                            'rgba(52, 152, 219, 0.8)',
+                            'rgba(231, 76, 60, 0.8)',
+                            'rgba(243, 156, 18, 0.8)',
+                            'rgba(39, 174, 96, 0.8)',
+                            'rgba(155, 89, 182, 0.8)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+            
+            // 配送時間分布
+            const deliveryTimeCtx = document.getElementById('deliveryTimeChart').getContext('2d');
+            charts.deliveryTime = new Chart(deliveryTimeCtx, {
+                type: 'histogram',
+                data: {
+                    labels: ['<30分', '30-45分', '45-60分', '60-90分', '>90分'],
+                    datasets: [{
+                        label: '訂單數量',
+                        data: [234, 567, 345, 89, 12],
+                        backgroundColor: '#27ae60'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+            
+            // 配送效率趨勢
+            const deliveryEfficiencyCtx = document.getElementById('deliveryEfficiencyChart').getContext('2d');
+            charts.deliveryEfficiency = new Chart(deliveryEfficiencyCtx, {
+                type: 'line',
+                data: {
+                    labels: ['週一', '週二', '週三', '週四', '週五', '週六', '週日'],
+                    datasets: [
+                        {
+                            label: '準時率 (%)',
+                            data: [92, 94, 96, 93, 95, 98, 91],
+                            borderColor: '#27ae60',
+                            backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: '平均配送時間 (分)',
+                            data: [45, 42, 38, 44, 41, 35, 48],
+                            borderColor: '#e74c3c',
+                            backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            grid: {
+                                drawOnChartArea: false,
+                            },
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 重新整理報表
+        function refreshReports() {
+            const timeRange = document.getElementById('timeRange').value;
+            const compareWith = document.getElementById('compareWith').value;
+            
+            // 顯示載入效果
+            document.body.style.opacity = '0.7';
+            
+            // 模擬API調用
+            setTimeout(() => {
+                // 更新統計數據
+                updateStatistics(timeRange, compareWith);
+                
+                // 重新繪製圖表
+                Object.values(charts).forEach(chart => {
+                    if (chart && chart.update) {
+                        chart.update();
+                    }
+                });
+                
+                document.body.style.opacity = '1';
+                showNotification('📊 報表更新完成');
+            }, 1000);
+        }
+        
+        // 更新統計數據
+        function updateStatistics(timeRange, compareWith) {
+            // 根據時間範圍模擬不同的數據
+            const multiplier = timeRange / 30;
+            
+            document.getElementById('totalRevenue').textContent = 
+                '$' + Math.round(287650 * multiplier).toLocaleString();
+            document.getElementById('totalOrders').textContent = 
+                Math.round(1247 * multiplier).toLocaleString();
+            document.getElementById('avgOrderValue').textContent = 
+                '$' + Math.round(231 / multiplier);
+        }
+        
+        // 匯出圖表
+        function exportChart(chartType) {
+            const chart = charts[chartType];
+            if (chart) {
+                const url = chart.toBase64Image();
+                const link = document.createElement('a');
+                link.download = `${chartType}_chart.png`;
+                link.href = url;
+                link.click();
+                showNotification('📊 圖表已匯出');
+            }
+        }
+        
+        // 匯出表格
+        function exportTable(tableType) {
+            // 模擬Excel匯出
+            showNotification('📄 Excel檔案準備中...');
+            setTimeout(() => {
+                showNotification('✅ Excel檔案已下載');
+            }, 2000);
+        }
+        
+        // 顯示通知
+        function showNotification(message) {
+            // 創建通知元素
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #27ae60;
+                color: white;
+                padding: 15px 20px;
+                border-radius: 6px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                z-index: 1000;
+                transform: translateX(400px);
+                transition: transform 0.3s ease;
+            `;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            // 顯示動畫
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+            }, 100);
+            
+            // 3秒後移除
+            setTimeout(() => {
+                notification.style.transform = 'translateX(400px)';
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

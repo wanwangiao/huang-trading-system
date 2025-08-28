@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>外送員工作台 - 承億蔬菜外送系統</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#28a745">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="外送員工作台">
+    
+    <!-- CSS Dependencies -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #28a745;
+            --secondary: #6c757d;
+            --success: #20c997;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --info: #17a2b8;
+            --light: #f8f9fa;
+            --dark: #343a40;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ===== 主要容器 ===== */
+        .driver-container {
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            min-height: 100vh;
+            max-width: 100vw;
+        }
+
+        /* ===== 頂部狀態列 ===== */
+        .status-bar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .driver-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-online { background: var(--success); }
+        .status-busy { background: var(--warning); }
+        .status-offline { background: var(--secondary); }
+
+        .driver-info {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .current-time {
+            font-size: 14px;
+            color: var(--secondary);
+        }
+
+        /* ===== 主要內容區域 ===== */
+        .main-content {
+            padding: 20px;
+            overflow-y: auto;
+            display: grid;
+            gap: 20px;
+        }
+
+        /* ===== 統計卡片 ===== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: var(--secondary);
+            font-size: 0.9rem;
+        }
+
+        /* ===== 訂單卡片 ===== */
+        .orders-container {
+            max-height: calc(100vh - 350px);
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .orders-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .orders-container::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+
+        .orders-container::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 10px;
+        }
+
+        .order-card {
+            background: white;
+            border-radius: 15px;
+            margin-bottom: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .order-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .order-header {
+            padding: 15px 20px;
+            background: linear-gradient(135deg, var(--primary), var(--success));
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .order-id {
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        .order-amount {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .order-body {
+            padding: 20px;
+        }
+
+        .customer-info {
+            display: grid;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .info-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .info-icon {
+            width: 20px;
+            text-align: center;
+            color: var(--secondary);
+        }
+
+        .address-full {
+            background: var(--light);
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        /* ===== 操作按鈕 ===== */
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn-action {
+            flex: 1;
+            min-width: 120px;
+            padding: 12px 15px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-accept {
+            background: linear-gradient(135deg, var(--success), #17a2b8);
+            color: white;
+        }
+
+        .btn-navigate {
+            background: linear-gradient(135deg, var(--primary), var(--success));
+            color: white;
+        }
+
+        .btn-complete {
+            background: linear-gradient(135deg, var(--warning), #fd7e14);
+            color: white;
+        }
+
+        .btn-action:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        /* ===== 底部快捷操作 ===== */
+        .bottom-actions {
+            background: white;
+            padding: 15px 20px;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+
+        .quick-action {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            padding: 10px;
+            border-radius: 10px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: var(--secondary);
+        }
+
+        .quick-action:hover {
+            background: var(--light);
+            color: var(--primary);
+            transform: scale(1.05);
+        }
+
+        .quick-action i {
+            font-size: 1.5rem;
+        }
+
+        .quick-action span {
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        /* ===== 通知系統 ===== */
+        .notification-toast {
+            position: fixed;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            color: var(--dark);
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            opacity: 0;
+            transform: translateX(-50%) translateY(-20px);
+            transition: all 0.3s ease;
+            max-width: 90vw;
+        }
+
+        .notification-toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* ===== 地圖模式 ===== */
+        .map-view {
+            display: none;
+            height: 50vh;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .map-view.active {
+            display: block;
+        }
+
+        #driverMap {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* ===== 語音控制指示器 ===== */
+        .voice-indicator {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--primary);
+            color: white;
+            padding: 20px;
+            border-radius: 50%;
+            font-size: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            z-index: 1001;
+            display: none;
+            animation: voicePulse 1s infinite;
+        }
+
+        @keyframes voicePulse {
+            0% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.1); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+
+        /* ===== 響應式設計 ===== */
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 15px;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .stat-card {
+                padding: 15px;
+            }
+
+            .order-body {
+                padding: 15px;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .btn-action {
+                min-width: 100%;
+            }
+        }
+
+        /* ===== 暗色模式支援 ===== */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            }
+
+            .stat-card, .order-card, .status-bar, .bottom-actions {
+                background: #2c3e50;
+                color: white;
+            }
+
+            .address-full {
+                background: #34495e;
+            }
+
+            .quick-action:hover {
+                background: #34495e;
+            }
+        }
+
+        /* ===== 動畫效果 ===== */
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .order-card {
+            animation: slideInUp 0.5s ease forwards;
+        }
+
+        /* ===== Loading Skeleton ===== */
+        .loading-skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="driver-container">
+        <!-- 頂部狀態列 -->
+        <div class="status-bar">
+            <div class="driver-status">
+                <div class="status-indicator status-online" id="statusIndicator"></div>
+                <div class="driver-info">
+                    <div id="driverName">載入中...</div>
+                    <div class="small text-muted">外送員工作台</div>
+                </div>
+            </div>
+            <div class="current-time" id="currentTime"></div>
+        </div>
+
+        <!-- 主要內容 -->
+        <div class="main-content">
+            <!-- 統計卡片 -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon" style="color: var(--primary);">
+                        <i class="fas fa-shopping-cart"></i>
+                    </div>
+                    <div class="stat-value" id="todayOrders">0</div>
+                    <div class="stat-label">今日訂單</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="color: var(--success);">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-value" id="completedOrders">0</div>
+                    <div class="stat-label">已完成</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="color: var(--warning);">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-value" id="pendingOrders">0</div>
+                    <div class="stat-label">進行中</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="color: var(--info);">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <div class="stat-value" id="todayEarnings">$0</div>
+                    <div class="stat-label">今日收入</div>
+                </div>
+            </div>
+
+            <!-- 地圖視圖 -->
+            <div class="map-view" id="mapView">
+                <div id="driverMap"></div>
+            </div>
+
+            <!-- 訂單列表 -->
+            <div class="orders-container" id="ordersContainer">
+                <!-- 訂單將通過 JavaScript 動態載入 -->
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">載入中...</span>
+                    </div>
+                    <div class="mt-2">載入訂單中...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部快捷操作 -->
+        <div class="bottom-actions">
+            <button class="quick-action" onclick="toggleMapView()">
+                <i class="fas fa-map-marked-alt"></i>
+                <span>地圖</span>
+            </button>
+            <button class="quick-action" onclick="refreshOrders()">
+                <i class="fas fa-sync-alt"></i>
+                <span>重新整理</span>
+            </button>
+            <button class="quick-action" onclick="toggleVoiceControl()">
+                <i class="fas fa-microphone"></i>
+                <span>語音</span>
+            </button>
+            <button class="quick-action" onclick="showSettings()">
+                <i class="fas fa-cog"></i>
+                <span>設定</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 通知彈窗 -->
+    <div class="notification-toast" id="notificationToast">
+        <div class="d-flex align-items-center">
+            <div class="me-3">
+                <i class="fas fa-bell text-primary"></i>
+            </div>
+            <div class="flex-grow-1">
+                <div class="fw-bold" id="notificationTitle">通知</div>
+                <div class="small text-muted" id="notificationMessage"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 語音控制指示器 -->
+    <div class="voice-indicator" id="voiceIndicator">
+        <i class="fas fa-microphone"></i>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // ===== 全局變量 =====
+        let driverData = null;
+        let currentOrders = [];
+        let wsConnection = null;
+        let mapInstance = null;
+        let voiceRecognition = null;
+        let isMapViewActive = false;
+        let isVoiceActive = false;
+
+        // ===== 頁面初始化 =====
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
+
+        async function initializeApp() {
+            // 初始化時間顯示
+            updateCurrentTime();
+            setInterval(updateCurrentTime, 1000);
+
+            // 載入外送員資料
+            await loadDriverData();
+
+            // 載入訂單資料
+            await loadOrders();
+
+            // 初始化 WebSocket 連線
+            initializeWebSocket();
+
+            // 初始化語音辨識
+            initializeVoiceRecognition();
+
+            // 註冊 Service Worker (PWA)
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/sw.js');
+            }
+
+            console.log('🚀 外送員工作台已初始化完成');
+        }
+
+        // ===== 時間更新 =====
+        function updateCurrentTime() {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = 
+                now.toLocaleTimeString('zh-TW', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+        }
+
+        // ===== 載入外送員資料 =====
+        async function loadDriverData() {
+            try {
+                // 這裡應該從 localStorage 或 API 取得外送員資訊
+                const driverId = localStorage.getItem('driverId') || '1';
+                
+                // 模擬 API 呼叫
+                driverData = {
+                    id: driverId,
+                    name: '王小明',
+                    phone: '0912345678',
+                    status: 'online'
+                };
+
+                document.getElementById('driverName').textContent = driverData.name;
+                
+            } catch (error) {
+                console.error('❌ 載入外送員資料失敗:', error);
+                showNotification('載入外送員資料失敗', 'error');
+            }
+        }
+
+        // ===== 載入訂單資料 =====
+        async function loadOrders() {
+            try {
+                const response = await fetch('/api/driver/orders');
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentOrders = data.orders || [];
+                    displayOrders(currentOrders);
+                    updateStats(currentOrders);
+                } else {
+                    throw new Error(data.message || '載入訂單失敗');
+                }
+            } catch (error) {
+                console.error('❌ 載入訂單失敗:', error);
+                showNotification('載入訂單失敗', 'error');
+                displayErrorState();
+            }
+        }
+
+        // ===== 顯示訂單 =====
+        function displayOrders(orders) {
+            const container = document.getElementById('ordersContainer');
+            
+            if (!orders || orders.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">目前沒有訂單</h5>
+                        <p class="text-muted">新訂單會自動顯示在這裡</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const ordersHTML = orders.map(order => `
+                <div class="order-card" data-order-id="${order.id}">
+                    <div class="order-header">
+                        <div class="order-id">#${order.id}</div>
+                        <div class="order-amount">NT$${order.total_amount}</div>
+                    </div>
+                    <div class="order-body">
+                        <div class="customer-info">
+                            <div class="info-row">
+                                <i class="info-icon fas fa-user"></i>
+                                <span>${order.contact_name}</span>
+                            </div>
+                            <div class="info-row">
+                                <i class="info-icon fas fa-phone"></i>
+                                <span>${order.contact_phone}</span>
+                            </div>
+                        </div>
+                        <div class="address-full">
+                            <i class="fas fa-map-marker-alt me-2"></i>
+                            ${order.address}
+                        </div>
+                        <div class="action-buttons">
+                            ${getActionButtons(order)}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            container.innerHTML = ordersHTML;
+        }
+
+        // ===== 取得操作按鈕 =====
+        function getActionButtons(order) {
+            switch (order.status) {
+                case 'assigned':
+                    return `
+                        <button class="btn-action btn-accept" onclick="acceptOrder(${order.id})">
+                            <i class="fas fa-check"></i> 接受訂單
+                        </button>
+                        <button class="btn-action btn-navigate" onclick="navigateToCustomer(${order.id})">
+                            <i class="fas fa-route"></i> 開始導航
+                        </button>
+                    `;
+                case 'delivering':
+                    return `
+                        <button class="btn-action btn-navigate" onclick="navigateToCustomer(${order.id})">
+                            <i class="fas fa-route"></i> 導航
+                        </button>
+                        <button class="btn-action btn-complete" onclick="completeDelivery(${order.id})">
+                            <i class="fas fa-check-circle"></i> 送達完成
+                        </button>
+                    `;
+                default:
+                    return `<div class="text-muted text-center py-2">等待處理中...</div>`;
+            }
+        }
+
+        // ===== 更新統計資料 =====
+        function updateStats(orders) {
+            const todayOrders = orders.length;
+            const completedOrders = orders.filter(o => o.status === 'delivered').length;
+            const pendingOrders = orders.filter(o => ['assigned', 'delivering'].includes(o.status)).length;
+            const todayEarnings = orders
+                .filter(o => o.status === 'delivered')
+                .reduce((sum, o) => sum + parseFloat(o.total_amount), 0);
+
+            document.getElementById('todayOrders').textContent = todayOrders;
+            document.getElementById('completedOrders').textContent = completedOrders;
+            document.getElementById('pendingOrders').textContent = pendingOrders;
+            document.getElementById('todayEarnings').textContent = `$${todayEarnings.toFixed(0)}`;
+        }
+
+        // ===== WebSocket 連線 =====
+        function initializeWebSocket() {
+            try {
+                const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}`;
+                wsConnection = new WebSocket(wsUrl);
+
+                wsConnection.onopen = function() {
+                    console.log('🔗 WebSocket 連線已建立');
+                    updateConnectionStatus(true);
+                };
+
+                wsConnection.onmessage = function(event) {
+                    const data = JSON.parse(event.data);
+                    handleWebSocketMessage(data);
+                };
+
+                wsConnection.onclose = function() {
+                    console.log('❌ WebSocket 連線已關閉');
+                    updateConnectionStatus(false);
+                    // 5秒後重新連線
+                    setTimeout(initializeWebSocket, 5000);
+                };
+
+                wsConnection.onerror = function(error) {
+                    console.error('❌ WebSocket 錯誤:', error);
+                };
+
+            } catch (error) {
+                console.error('❌ WebSocket 初始化失敗:', error);
+            }
+        }
+
+        // ===== 處理 WebSocket 訊息 =====
+        function handleWebSocketMessage(data) {
+            switch (data.type) {
+                case 'new-order':
+                    handleNewOrder(data.order);
+                    break;
+                case 'order-update':
+                    handleOrderUpdate(data);
+                    break;
+                case 'new-route-assigned':
+                    handleNewRoute(data);
+                    break;
+                default:
+                    console.log('收到未知訊息類型:', data.type);
+            }
+        }
+
+        // ===== 處理新訂單 =====
+        function handleNewOrder(order) {
+            currentOrders.unshift(order);
+            displayOrders(currentOrders);
+            updateStats(currentOrders);
+            
+            showNotification(
+                '新訂單通知',
+                `收到新訂單 #${order.id}，金額 NT$${order.total_amount}`
+            );
+
+            // 語音播報
+            speakText(`收到新訂單，編號${order.id}，金額${order.total_amount}元`);
+        }
+
+        // ===== 語音辨識和播報 =====
+        function initializeVoiceRecognition() {
+            if ('webkitSpeechRecognition' in window) {
+                voiceRecognition = new webkitSpeechRecognition();
+                voiceRecognition.continuous = false;
+                voiceRecognition.lang = 'zh-TW';
+                
+                voiceRecognition.onresult = function(event) {
+                    const result = event.results[0][0].transcript;
+                    handleVoiceCommand(result);
+                };
+            }
+        }
+
+        function speakText(text) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'zh-TW';
+                utterance.rate = 0.8;
+                speechSynthesis.speak(utterance);
+            }
+        }
+
+        // ===== 訂單操作函數 =====
+        async function acceptOrder(orderId) {
+            try {
+                const response = await fetch(`/api/orders/${orderId}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: 'delivering' })
+                });
+
+                if (response.ok) {
+                    showNotification('訂單已接受', '開始配送流程');
+                    loadOrders();
+                } else {
+                    throw new Error('接受訂單失敗');
+                }
+            } catch (error) {
+                showNotification('操作失敗', error.message, 'error');
+            }
+        }
+
+        async function completeDelivery(orderId) {
+            try {
+                const response = await fetch(`/api/orders/${orderId}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: 'delivered' })
+                });
+
+                if (response.ok) {
+                    showNotification('配送完成', '訂單已標記為送達');
+                    speakText('配送完成');
+                    loadOrders();
+                } else {
+                    throw new Error('完成配送失敗');
+                }
+            } catch (error) {
+                showNotification('操作失敗', error.message, 'error');
+            }
+        }
+
+        function navigateToCustomer(orderId) {
+            const order = currentOrders.find(o => o.id === orderId);
+            if (order && order.address) {
+                const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(order.address)}`;
+                window.open(googleMapsUrl, '_blank');
+                showNotification('導航已開啟', '正在開啟 Google Maps 導航');
+            }
+        }
+
+        // ===== 界面控制函數 =====
+        function toggleMapView() {
+            const mapView = document.getElementById('mapView');
+            isMapViewActive = !isMapViewActive;
+            
+            if (isMapViewActive) {
+                mapView.classList.add('active');
+                if (!mapInstance) {
+                    initializeMap();
+                }
+            } else {
+                mapView.classList.remove('active');
+            }
+        }
+
+        function refreshOrders() {
+            loadOrders();
+            showNotification('已重新整理', '訂單資料已更新');
+        }
+
+        function toggleVoiceControl() {
+            isVoiceActive = !isVoiceActive;
+            
+            if (isVoiceActive && voiceRecognition) {
+                voiceRecognition.start();
+                document.getElementById('voiceIndicator').style.display = 'block';
+                showNotification('語音控制已開啟', '請說出指令');
+            } else {
+                document.getElementById('voiceIndicator').style.display = 'none';
+                showNotification('語音控制已關閉');
+            }
+        }
+
+        // ===== 通知系統 =====
+        function showNotification(title, message = '', type = 'info') {
+            const toast = document.getElementById('notificationToast');
+            const titleEl = document.getElementById('notificationTitle');
+            const messageEl = document.getElementById('notificationMessage');
+            
+            titleEl.textContent = title;
+            messageEl.textContent = message;
+            
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 4000);
+        }
+
+        // ===== 其他輔助函數 =====
+        function updateConnectionStatus(connected) {
+            const indicator = document.getElementById('statusIndicator');
+            if (connected) {
+                indicator.className = 'status-indicator status-online';
+            } else {
+                indicator.className = 'status-indicator status-offline';
+            }
+        }
+
+        function displayErrorState() {
+            const container = document.getElementById('ordersContainer');
+            container.innerHTML = `
+                <div class="text-center py-5">
+                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                    <h5 class="text-warning">載入失敗</h5>
+                    <p class="text-muted">請檢查網路連線或重新整理頁面</p>
+                    <button class="btn btn-primary" onclick="loadOrders()">重新載入</button>
+                </div>
+            `;
+        }
+
+        function showSettings() {
+            showNotification('設定功能', '設定功能開發中...');
+        }
+
+        // ===== 地圖初始化 (預留) =====
+        function initializeMap() {
+            // 這裡會初始化 Google Maps
+            console.log('📍 初始化地圖功能');
+        }
+
+        // 語音指令處理
+        function handleVoiceCommand(command) {
+            console.log('🎤 語音指令:', command);
+            // 語音指令處理邏輯
+        }
+    </script>
+</body>
+</html>

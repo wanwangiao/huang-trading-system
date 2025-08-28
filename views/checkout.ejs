@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8">
+    <title>結帳</title>
+    <link rel="stylesheet" href="/css/styles.css">
+  </head>
+  <body>
+    <header>
+      <div class="container">
+        <h1>🛒 結帳</h1>
+        <p><a href="/" style="color: #ffeb3b;">← 返回商品列表</a></p>
+      </div>
+    </header>
+    
+    <div class="container">
+      <section id="order-section" class="order-summary"></section>
+      
+      <section class="checkout-section">
+        <h2>📋 填寫訂購資料</h2>
+        <form id="checkout-form" class="checkout-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="name">👤 姓名 *</label>
+              <input type="text" id="name" required placeholder="請輸入您的姓名">
+            </div>
+            <div class="form-group">
+              <label for="phone">📱 手機 *</label>
+              <input type="tel" id="phone" required placeholder="09xxxxxxxx" pattern="09[0-9]{8}">
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="address">📍 送貨地址 *</label>
+            <input type="text" id="address" required placeholder="請輸入完整地址（含縣市區）">
+          </div>
+          
+          <div class="form-group">
+            <label for="notes">💬 備註</label>
+            <textarea id="notes" rows="3" placeholder="有任何特殊需求請在此註明"></textarea>
+          </div>
+          
+          <div class="form-group">
+          </div>
+          
+          <div class="form-group">
+            <label for="paymentMethod">💳 付款方式 *</label>
+            <select id="paymentMethod" required>
+              <option value="">請選擇付款方式</option>
+              <option value="cash">💰 現金付款</option>
+              <option value="linepay">📱 LINE Pay</option>
+              <option value="bank_transfer">🏦 銀行轉帳</option>
+            </select>
+          </div>
+          
+          <div class="info-box">
+            <p>📋 <strong>注意事項：</strong></p>
+            <ul>
+              <li>💰 計價商品將於秤重後更新金額並通知您</li>
+              <li>🚚 滿$200免運費，未滿收取$50運費</li>
+              <li>⏰ 預計2-3小時內送達</li>
+            </ul>
+          </div>
+          
+          <button type="submit" class="submit-btn">
+            <span id="submit-text">🚀 確認送出訂單</span>
+            <span id="loading-text" style="display: none;">⏳ 處理中...</span>
+          </button>
+        </form>
+        <div id="checkout-message" class="message"></div>
+      </section>
+    </div>
+    <script>
+      // 從 localStorage 取得購物車
+      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      function renderOrder() {
+        const orderSection = document.getElementById('order-section');
+        if (!cart || cart.length === 0) {
+          orderSection.innerHTML = `
+            <div style="text-align: center; padding: 2rem;">
+              <h2>🛒 購物車是空的</h2>
+              <p>快去選購新鮮蔬果吧！</p>
+              <a href="/" class="btn">🛍️ 回商品列表</a>
+            </div>
+          `;
+          document.getElementById('checkout-form').style.display = 'none';
+          return;
+        }
+        
+        // 從伺服器取得最新產品資訊
+        fetch('/api/products')
+          .then(resp => resp.json())
+          .then(data => {
+            const products = data.products;
+            let html = '<h2>📦 訂購清單</h2><div class="order-items">';
+            let subtotal = 0;
+            let hasVariableItems = false;
+            
+            cart.forEach(item => {
+              const p = products.find(x => x.id === item.productId);
+              if (!p) return;
+              
+              html += `<div class="order-item">
+                <div class="item-info">
+                  <span class="item-name">${p.name}</span>
+                  <span class="item-quantity">數量: ${item.quantity}</span>
+                </div>
+                <div class="item-price">`;
+              
+              if (p.is_priced_item) {
+                html += '<span class="variable-price">💰 待確認</span>';
+                hasVariableItems = true;
+              } else {
+                const lineTotal = Number(p.price) * Number(item.quantity);
+                subtotal += lineTotal;
+                html += `<span class="fixed-price">$${lineTotal}</span>`;
+              }
+              
+              html += '</div></div>';
+            });
+            
+            html += '</div>';
+            
+            // 計算運費
+            const deliveryFee = subtotal >= 200 ? 0 : 50;
+            const total = subtotal + deliveryFee;
+            
+            html += `
+              <div class="order-total">
+                <div class="total-line">
+                  <span>小計（固定價商品）：</span>
+                  <span>$${subtotal}</span>
+                </div>
+                <div class="total-line">
+                  <span>運費：</span>
+                  <span>${deliveryFee === 0 ? '免運費' : '$' + deliveryFee}</span>
+                </div>
+                <div class="total-line final-total">
+                  <span>預估總計：</span>
+                  <span>$${total}</span>
+                </div>
+                ${hasVariableItems ? '<p class="note">💡 最終金額將於秤重後確認</p>' : ''}
+              </div>
+            `;
+            
+            orderSection.innerHTML = html;
+          })
+          .catch(err => {
+            orderSection.innerHTML = '<p class="error">載入商品資訊失敗，請重新整理頁面</p>';
+          });
+      }
+      renderOrder();
+
+      document.getElementById('checkout-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        
+        if (!cart || cart.length === 0) {
+          showMessage('購物車是空的，請先選購商品', 'error');
+          return;
+        }
+        
+        // 顯示載入狀態
+        const submitBtn = document.querySelector('.submit-btn');
+        const submitText = document.getElementById('submit-text');
+        const loadingText = document.getElementById('loading-text');
+        
+        submitBtn.disabled = true;
+        submitText.style.display = 'none';
+        loadingText.style.display = 'inline';
+        
+        const name = document.getElementById('name').value.trim();
+        const phone = document.getElementById('phone').value.trim();
+        const address = document.getElementById('address').value.trim();
+        const notes = document.getElementById('notes').value.trim();
+        const paymentMethod = document.getElementById('paymentMethod').value;
+        
+        // 前端驗證
+        if (!name || name.length < 2) {
+          showMessage('姓名至少需要2個字元', 'error');
+          resetButton();
+          return;
+        }
+        
+        if (!phone.match(/^09\d{8}$/)) {
+          showMessage('請輸入正確的手機號碼格式（09xxxxxxxx）', 'error');
+          resetButton();
+          return;
+        }
+        
+        if (!address || address.length < 5) {
+          showMessage('地址至少需要5個字元', 'error');
+          resetButton();
+          return;
+        }
+        
+        if (!paymentMethod) {
+          showMessage('請選擇付款方式', 'error');
+          resetButton();
+          return;
+        }
+        
+        const items = cart.map(it => ({ 
+          productId: it.productId, 
+          quantity: it.unitQuantity || it.quantity,
+          selectedUnit: it.selectedUnit
+        }));
+        
+        fetch('/api/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, phone, address, notes, paymentMethod, items })
+        })
+        .then(resp => resp.json())
+        .then(data => {
+          if (data.success) {
+            localStorage.removeItem('cart');
+            document.getElementById('checkout-form').style.display = 'none';
+            showMessage(`
+              🎉 訂單已成功送出！<br>
+              📝 訂單編號：${data.orderId}<br>
+              💰 預估金額：${data.data ? '$' + data.data.total : '待確認'}<br>
+              ⏰ 預計送達：${data.data ? data.data.estimatedDelivery : '2-3小時內'}<br>
+              📱 我們會透過LINE或電話通知您最新狀態
+            `, 'success');
+            
+            // 3秒後跳轉到首頁
+            setTimeout(() => {
+              window.location.href = '/';
+            }, 5000);
+          } else {
+            showMessage(data.message || '訂單送出失敗，請稍後再試', 'error');
+            resetButton();
+          }
+        })
+        .catch(err => {
+          console.error('Submit error:', err);
+          showMessage('網路連線失敗，請檢查網路後重試', 'error');
+          resetButton();
+        });
+        
+        function resetButton() {
+          submitBtn.disabled = false;
+          submitText.style.display = 'inline';
+          loadingText.style.display = 'none';
+        }
+        
+        function showMessage(message, type) {
+          const messageEl = document.getElementById('checkout-message');
+          messageEl.innerHTML = message;
+          messageEl.className = `message ${type}`;
+          messageEl.scrollIntoView({ behavior: 'smooth' });
+        }
+      });
+    </script>
+  </body>
+</html>
