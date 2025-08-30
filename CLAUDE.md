@@ -295,7 +295,8 @@ GET  /api/driver/stats              - 外送員統計
 - **主介面**: `driver_dashboard_simplified.ejs` (區域按鈕模式)
 - **行動介面**: `driver_mobile_interface.ejs` (80/20地圖模式) 
 - **API層**: `driver_simplified_api.js` (7個核心端點)
-- **地圖服務**: Google Maps JavaScript API完全整合
+- **地圖服務**: Google Maps JavaScript API完全整合 ✅ (已完全移除Mapbox)
+- **遺留檔案**: `mapboxService.js`, `mapbox.js` (僅保留備份，未使用)
 
 ---
 *最後更新: 2025/8/30 晚上10:22*
