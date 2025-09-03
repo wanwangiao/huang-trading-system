@@ -1,0 +1,64 @@
+# VEG DELIVERY SYSTEM - SECURITY ENHANCED
+*.exe
+*.zip
+node_modules/
+.env
+*.log
+
+# 敏感資料檔案
+cookies.txt
+test_cookies.txt
+test_session.txt
+*session*.txt
+*.cookie
+security_test_report.json
+
+# 系統檔案
+AppData/
+.android/
+.claude/
+.config/
+.cursor/
+.expo/
+.gemini/
+.happy/
+.vscode/
+Desktop/
+Documents/
+Downloads/
+Pictures/
+Videos/
+Music/
+Contacts/
+Favorites/
+Links/
+Searches/
+Intel/
+IntelGraphicsProfiles/
+MicrosoftEdgeBackups/
+AnyToResource/
+ATLAgent/
+
+# 歸檔與備份
+archive_20250828_215951/
+jianghu-game-pwa/
+jianghu-liuzhuan-agents/
+江湖流转录_天机篇/
+網站圖片/
+錯誤資料夾/
+
+# 系統檔案擴展
+*.dat
+*.log1
+*.log2
+*.blf
+*.regtrans-ms
+*.ini
+nul
+_
+dev
+gemini
+main
+next
+0.60
+({

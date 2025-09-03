@@ -13,8 +13,20 @@ function ensureDriver(req, res, next) {
 }
 
 async function ensureOrderOwnership(req, res, next) {
-  const oid = +req.params.orderId,
-        did = req.session.driverId;
+  const orderIdParam = req.params.orderId;
+  const did = req.session.driverId;
+  
+  // 驗證 orderId 格式
+  if (!orderIdParam || !/^\d+$/.test(orderIdParam)) {
+    return res.status(404).json({ error: '訂單不存在' });
+  }
+  
+  const oid = +orderIdParam;
+  
+  // 驗證 orderId 是正整數
+  if (!Number.isInteger(oid) || oid <= 0) {
+    return res.status(404).json({ error: '訂單不存在' });
+  }
   
   try {
     if (req.app.locals.demoMode) return next();
@@ -31,10 +43,10 @@ async function ensureOrderOwnership(req, res, next) {
     const order = rows[0];
     
     if (order.driver_id !== did) {
-      console.log(`⚠️ ${did}嘗試操作${oid}`);
+      console.log(`⚠️ 外送員${did}嘗試存取非授權訂單${oid}`);
       return res.status(403).json({ 
         error: '無權限',
-        details: '非你的訂單'
+        details: '您無權限存取此訂單'
       });
     }
     
@@ -42,7 +54,7 @@ async function ensureOrderOwnership(req, res, next) {
     next();
     
   } catch (e) {
-    console.error('權限錯誤:', e);
+    console.error('訂單權限檢查錯誤:', e);
     res.status(500).json({ error: '系統錯誤' });
   }
 }
