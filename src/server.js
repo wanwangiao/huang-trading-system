@@ -803,12 +803,47 @@ app.get('/test', (req, res) => {
   });
 });
 
+// 🎨 產品表情符號映射函數
+function getProductEmoji(productName) {
+  const emojiMap = {
+    '高麗菜': '🥬',
+    '白蘿蔔': '🥕',
+    '紅蘿蔔': '🥕',
+    '菠菜': '🥬', 
+    '小白菜': '🥬',
+    '韭菜': '🌿',
+    '花椰菜': '🥦',
+    '青花菜': '🥦',
+    '蔥': '🧅',
+    '薑': '🫚',
+    '蒜': '🧄',
+    '馬鈴薯': '🥔',
+    '番茄': '🍅',
+    '茄子': '🍆',
+    '青椒': '🫑',
+    '玉米': '🌽',
+    '香菇': '🍄',
+    '豆腐': '🥛',
+    '豆芽菜': '🌱',
+    '芹菜': '🌿',
+    '蘆筍': '🌿'
+  };
+  
+  for (const [key, emoji] of Object.entries(emojiMap)) {
+    if (productName.includes(key)) {
+      return emoji;
+    }
+  }
+  return '🥬'; // 預設蔬菜表情符號
+}
+
 app.get('/', async (req, res, next) => {
   try {
     const products = await fetchProducts();
-    res.render('index', { 
+    res.render('index_revolutionary', { 
       products: products,
-      sessionLine: req.session.line || null
+      sessionLine: req.session.line || null,
+      getProductEmoji: getProductEmoji
     });
   } catch (err) {
     next(err);
