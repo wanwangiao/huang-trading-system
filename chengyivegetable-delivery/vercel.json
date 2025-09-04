@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "name": "chengyivegetable-delivery",
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/api/index.js"
+    }
+  ],
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 30
+    }
+  },
+  "env": {
+    "DATABASE_URL": "postgresql://postgres:Chengyivegetable2025!@db.cywcuzgbuqmxjxwyrrsp.supabase.co:5432/postgres?sslmode=require",
+    "NODE_ENV": "production",
+    "LINE_CHANNEL_ID": "2007891772",
+    "LINE_CHANNEL_SECRET": "35bc80bb75f95d22a49aaaf8772eef38",
+    "LINE_CHANNEL_ACCESS_TOKEN": "Rb4HdoTx3gV7skydMOJy4/0xw09IpOc9djST7z5eSEs+CccUAfsdtrPlI3SEEQya+Npz6+OW6B8un+Tfr6sJ6dw3Aab1Y+kLng21ZAXjO0sYYS7ILLzH4ccNVRDh8Xnv3ch0DTDNGT8pc+7bGZjruAdB04t89/1O/w1cDnyilFU=",
+    "LINE_LIFF_ID": "2007966099-qXjNxbXN",
+    "GOOGLE_MAPS_API_KEY": "AIzaSyBRwW-NMUDGMXaDhvl3oYJs_OqjfXWTTNE",
+    "FORCE_DEPLOY": "2025-09-04-update"
+  }
+}
