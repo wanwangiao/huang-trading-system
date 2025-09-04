@@ -865,6 +865,8 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
+    version: 'NEW_VERSION_2025_09_04',
+    server: 'src/server.js',
     env: {
       NODE_ENV: process.env.NODE_ENV,
       DATABASE_URL: process.env.DATABASE_URL ? 'configured' : 'missing',
