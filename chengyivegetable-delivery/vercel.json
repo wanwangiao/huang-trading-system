@@ -4,11 +4,11 @@
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "/api/index.js"
+      "dest": "/src/server.js"
     }
   ],
   "functions": {
-    "api/index.js": {
+    "src/server.js": {
       "maxDuration": 30
     }
   },
