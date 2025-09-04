@@ -12,11 +12,6 @@
       "dest": "src/server.js"
     }
   ],
-  "functions": {
-    "src/server.js": {
-      "maxDuration": 30
-    }
-  },
   "env": {
     "DATABASE_URL": "postgresql://postgres:Chengyivegetable2025!@db.cywcuzgbuqmxjxwyrrsp.supabase.co:5432/postgres?sslmode=require",
     "NODE_ENV": "production",
