@@ -61,57 +61,17 @@ const validateAdminPassword = (req, res, next) => {
 
 // 清理和標準化輸入
 const sanitizeInput = (req, res, next) => {
-  // 清理字符串欄位
-  const stringFields = ['name', 'address', 'notes', 'invoice', 'phone', 'password'];
-  
-  stringFields.forEach(field => {
-    if (req.body[field] && typeof req.body[field] === 'string') {
-      // 移除潛在危險字符，但保留中文字符
-      req.body[field] = req.body[field]
-        .trim()
-        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // 移除 script 標籤
-        .replace(/javascript:/gi, '') // 移除 javascript: 協議
-        .replace(/on\w+\s*=/gi, ''); // 移除事件處理器
-      
-      // 限制長度
-      if (req.body[field].length > 500) {
-        req.body[field] = req.body[field].substring(0, 500);
-      }
-    }
-  });
-  
-  // 清理數值欄位
-  if (req.body.items && Array.isArray(req.body.items)) {
-    req.body.items = req.body.items.map(item => ({
-      ...item,
-      productId: parseInt(item.productId) || 0,
-      quantity: parseInt(item.quantity) || 0,
-      price: parseFloat(item.price) || 0
-    }));
+  if (req.body.name) {
+    req.body.name = validator.escape(req.body.name.trim());
   }
-  
-  next();
-};
-
-// 驗證外送員登入數據
-const validateDriverLogin = (req, res, next) => {
-  const { phone, password } = req.body;
-  const errors = [];
-  
-  if (!phone || !/^09\d{8}$/.test(phone)) {
-    errors.push('請輸入有效的手機號碼');
+  if (req.body.address) {
+    req.body.address = validator.escape(req.body.address.trim());
   }
-  
-  if (!password || password.length < 3) {
-    errors.push('密碼長度至少需要3個字元');
+  if (req.body.notes) {
+    req.body.notes = validator.escape(req.body.notes.trim());
   }
-  
-  if (errors.length > 0) {
-    return res.status(400).json({
-      success: false,
-      error: '登入資料格式錯誤',
-      details: errors
-    });
+  if (req.body.invoice) {
+    req.body.invoice = validator.escape(req.body.invoice.trim());
   }
   
   next();
@@ -120,6 +80,5 @@ const validateDriverLogin = (req, res, next) => {
 module.exports = {
   validateOrderData,
   validateAdminPassword,
-  sanitizeInput,
-  validateDriverLogin
+  sanitizeInput
 };

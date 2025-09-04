@@ -22,6 +22,38 @@ const apiErrorHandler = (err, req, res, next) => {
     });
   }
 
+  // URL 解碼錯誤 - 特別處理外送員 API
+  if (err.message && err.message.includes('Failed to decode param') && req.originalUrl.includes('/api/driver/area-orders/')) {
+    console.log('🔧 捕獲URL解碼錯誤，嘗試修復:', err.message);
+    
+    // 提取原始參數
+    const urlParts = req.originalUrl.split('/area-orders/');
+    if (urlParts.length > 1) {
+      const rawArea = urlParts[1].split('?')[0];
+      
+      // 映射常見錯誤編碼
+      const areaMapping = {
+        '%a4T%ael%b0%cf': '三峽區',
+        '%be%f0%aaL%b0%cf': '樹林區', 
+        '%c5a%baq%b0%cf': '鶯歌區'
+      };
+      
+      const mappedArea = areaMapping[rawArea];
+      if (mappedArea) {
+        console.log('🎯 成功映射區域:', rawArea, '->', mappedArea);
+        // 重定向到正確的URL
+        const newUrl = req.originalUrl.replace(rawArea, encodeURIComponent(mappedArea));
+        return res.redirect(302, newUrl);
+      }
+    }
+    
+    return res.status(400).json({
+      success: false,
+      message: '區域參數格式錯誤',
+      error: '請使用正確的區域名稱'
+    });
+  }
+
   // 驗證錯誤
   if (err.name === 'ValidationError') {
     return res.status(400).json({

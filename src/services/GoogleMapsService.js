@@ -8,12 +8,16 @@ const axios = require('axios');
 class GoogleMapsService {
   constructor(pool = null) {
     this.name = 'GoogleMapsService';
-    this.apiKey = process.env.GOOGLE_MAPS_API_KEY;
+    this.apiKey = process.env.GOOGLE_MAPS_API_KEY || 'AIzaSyBRwW-NMUDGMXaDhvl3oYJs_OqjfXWTTNE';
     this.baseUrl = 'https://maps.googleapis.com/maps/api';
     this.pool = pool; // 資料庫連線池
     
-    if (!this.apiKey) {
+    if (!this.apiKey || this.apiKey === 'your_google_maps_key_here') {
       console.warn('⚠️ Google Maps API Key 未設定，將使用模擬資料');
+      this.useMockData = true;
+    } else {
+      this.useMockData = false;
+      console.log('✅ Google Maps API 已配置，Key: ' + this.apiKey.substr(0, 20) + '...');
     }
   }
   
@@ -115,6 +119,7 @@ class GoogleMapsService {
         const geocodeResult = {
           lat: location.lat,
           lng: location.lng,
+          coordinates: [location.lng, location.lat], // 添加 coordinates 字段 [lng, lat] 格式
           formatted_address: result.formatted_address,
           place_id: result.place_id,
           address_components: result.address_components,
@@ -565,6 +570,104 @@ class GoogleMapsService {
    */
   toRad(degrees) {
     return degrees * (Math.PI / 180);
+  }
+
+  /**
+   * 計算路線（供外送員使用）
+   * @param {Array} waypoints - 途經點陣列 [{lat, lng}, ...]
+   */
+  async calculateRoute(waypoints) {
+    if (!waypoints || waypoints.length < 2) {
+      return { success: false, error: '至少需要2個途經點' };
+    }
+
+    const origin = waypoints[0];
+    const destination = waypoints[waypoints.length - 1];
+    const waypointsList = waypoints.slice(1, -1); // 中間的途經點
+
+    return await this.planRoute(origin, destination, waypointsList);
+  }
+
+  /**
+   * 優化路線順序（供外送員使用）
+   * @param {Array} addresses - 地址陣列
+   */
+  async optimizeRoute(addresses) {
+    console.log(`🚀 開始優化 ${addresses.length} 個地址的路線`);
+
+    try {
+      // 第一步：地理編碼所有地址
+      const geocodePromises = addresses.map(address => this.geocodeAddress(address));
+      const geocodeResults = await Promise.all(geocodePromises);
+      
+      // 過濾出成功的座標
+      const validPoints = [];
+      const addressMapping = [];
+      
+      for (let i = 0; i < geocodeResults.length; i++) {
+        if (geocodeResults[i].success) {
+          validPoints.push({
+            lat: geocodeResults[i].lat,
+            lng: geocodeResults[i].lng
+          });
+          addressMapping.push({
+            originalIndex: i,
+            address: addresses[i],
+            coordinates: [geocodeResults[i].lng, geocodeResults[i].lat]
+          });
+        }
+      }
+
+      if (validPoints.length < 2) {
+        return {
+          success: false,
+          message: '可用地址數量不足，無法計算路線'
+        };
+      }
+
+      // 第二步：規劃最佳路線
+      const origin = validPoints[0];
+      const destination = validPoints[validPoints.length - 1];
+      const waypoints = validPoints.slice(1, -1);
+
+      const routeResult = await this.planRoute(origin, destination, waypoints);
+      
+      if (routeResult.success) {
+        return {
+          success: true,
+          optimizedAddresses: addressMapping,
+          totalDistance: routeResult.totalDistance,
+          totalDuration: routeResult.totalDuration,
+          routeGeometry: routeResult.polyline,
+          optimizedOrder: routeResult.optimizedOrder,
+          mapUrl: this.generateGoogleMapsUrl(validPoints),
+          directions: routeResult.legs
+        };
+      } else {
+        return {
+          success: false,
+          message: routeResult.error || '路線優化失敗'
+        };
+      }
+      
+    } catch (error) {
+      console.error('路線優化錯誤:', error);
+      return {
+        success: false,
+        message: `路線優化失敗: ${error.message}`
+      };
+    }
+  }
+
+  /**
+   * 生成Google Maps URL
+   * @param {Array} coordinates - 座標陣列
+   */
+  generateGoogleMapsUrl(coordinates) {
+    if (!coordinates || coordinates.length === 0) return null;
+    
+    const waypoints = coordinates.map(coord => `${coord.lat},${coord.lng}`).join('/');
+    return `https://www.google.com/maps/dir/${waypoints}`;
   }
 
   /**

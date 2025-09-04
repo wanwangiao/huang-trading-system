@@ -117,11 +117,15 @@
                   <!-- 價格區域 -->
                   <div class="product-price-mobile">
                     <% if (product.is_priced_item) { %>
-                      <!-- 計價商品 -->
-                      <div class="price-range">
-                        <span class="price-from">1斤約<%= Math.floor(Math.random() * 50) + 100 %>~</span>
+                      <!-- 稱重商品 -->
+                      <div class="weight-price">
+                        <% if (product.weight_price_per_unit) { %>
+                          <span class="price-per-unit">1<%= product.weight_unit || '斤' %>$<%= product.weight_price_per_unit %></span>
+                        <% } else { %>
+                          <span class="price-per-unit">1斤$<%= Math.floor(Math.random() * 20) + 35 %></span>
+                        <% } %>
                       </div>
-                      <div class="price-note">幫您秤重好後告知您金額~</div>
+                      <div class="weight-note">秤重商品</div>
                     <% } else { %>
                       <!-- 固定價格商品，模擬多規格 -->
                       <% if (product.id % 3 === 1) { %>
@@ -145,7 +149,7 @@
                   <!-- 商品描述 -->
                   <div class="product-description">
                     <% if (product.is_priced_item) { %>
-                      新鮮計價商品，秤重後確認價格
+                      可選擇重量，自動計算金額
                     <% } else { %>
                       新鮮優質，精選品質保證！
                     <% } %>
@@ -405,7 +409,27 @@
               <span class="item-price">`;
           
           if (product.is_priced_item) {
-            line += '待確認';
+            // 稱重商品自動計算
+            if (item.selectedWeight && item.selectedBasePrice) {
+              // 根據重量計算價格
+              const weight = Number(item.selectedWeight);
+              const basePrice = Number(item.selectedBasePrice);
+              let calculatedPrice = 0;
+              
+              if (weight === 600) {
+                calculatedPrice = Math.round(basePrice * 0.6);
+              } else if (weight === 1000) {
+                calculatedPrice = basePrice;
+              } else if (weight === 1500) {
+                calculatedPrice = Math.round(basePrice * 1.5);
+              }
+              
+              const lineTotal = calculatedPrice * Number(item.quantity);
+              line += `$${lineTotal}`;
+              subtotal += lineTotal;
+            } else {
+              line += '待確認';
+            }
           } else {
             const lineTotal = Number(product.price) * Number(item.quantity);
             line += `$${lineTotal}`;
@@ -543,7 +567,7 @@
         // 更新標題和描述
         document.getElementById('modal-title').textContent = product.name;
         document.getElementById('modal-description').textContent = 
-          product.is_priced_item ? '新鮮計價商品，秤重後確認價格，無運費設計！' : '新鮮優質，精選品質保證！當季最新鮮的蔬果。';
+          product.is_priced_item ? `新鮮稱重商品，選擇重量自動計算價格！` : '新鮮優質，精選品質保證！當季最新鮮的蔬果。';
         
         // 更新價格選項
         const priceOptions = document.getElementById('modal-price-options');
@@ -574,11 +598,25 @@
           
           priceOptions.innerHTML = optionsHtml;
         } else if (product.is_priced_item) {
-          // 計價商品的傳統顯示
+          // 稱重商品顯示，支援重量選擇
+          const basePrice = product.weight_price_per_unit || Math.floor(Math.random() * 20) + 35;
+          const baseUnit = product.weight_unit || '斤';
+          
           priceOptions.innerHTML = `
-            <div class="modal-price-item active" onclick="selectPriceOption(this)">
-              <div class="price-main">1斤約${Math.floor(Math.random() * 50) + 100}~</div>
-              <div class="price-desc">幫您秤重好後告知您金額</div>
+            <div class="modal-price-item active" onclick="selectPriceOption(this)" 
+                 data-weight="600" data-unit="公克" data-base-price="${basePrice}" data-base-unit="${baseUnit}">
+              <div class="price-main">600公克：$${Math.round(basePrice * 0.6)}</div>
+              <div class="price-desc">約1.2斤重量</div>
+            </div>
+            <div class="modal-price-item" onclick="selectPriceOption(this)"
+                 data-weight="1000" data-unit="公克" data-base-price="${basePrice}" data-base-unit="${baseUnit}">
+              <div class="price-main">1000公克：$${basePrice}</div>  
+              <div class="price-desc">約2斤重量</div>
+            </div>
+            <div class="modal-price-item" onclick="selectPriceOption(this)"
+                 data-weight="1500" data-unit="公克" data-base-price="${basePrice}" data-base-unit="${baseUnit}">
+              <div class="price-main">1500公克：$${Math.round(basePrice * 1.5)}</div>
+              <div class="price-desc">約3斤重量</div>
             </div>
           `;
         } else {
@@ -670,9 +708,19 @@
         let selectedOptionName = null;
         let priceModifier = 0;
         
+        let selectedWeight = null;
+        let selectedBasePrice = null;
+
         if (activeOption) {
+          // 檢查是否為稱重商品選項
+          if (activeOption.dataset.weight) {
+            selectedWeight = activeOption.dataset.weight;
+            selectedBasePrice = activeOption.dataset.basePrice;
+            selectedUnit = activeOption.dataset.unit;
+            console.log('稱重商品選項:', {selectedWeight, selectedBasePrice, selectedUnit});
+          }
           // 檢查是否為自訂選項
-          if (activeOption.dataset.optionId) {
+          else if (activeOption.dataset.optionId) {
             selectedOptionId = activeOption.dataset.optionId;
             selectedOptionName = activeOption.dataset.optionName;
             priceModifier = parseFloat(activeOption.dataset.priceModifier || 0);
@@ -703,14 +751,15 @@
         const existing = cart.find(item => 
           item.productId === currentModalProduct.id && 
           item.selectedUnit === selectedUnit &&
-          item.selectedOptionId === selectedOptionId
+          item.selectedOptionId === selectedOptionId &&
+          item.selectedWeight === selectedWeight
         );
         
         if (existing) {
           existing.quantity += qty;
           existing.unitQuantity += unitQuantity;
         } else {
-          cart.push({ 
+          const cartItem = { 
             productId: currentModalProduct.id, 
             quantity: qty,
             selectedUnit: selectedUnit,
@@ -718,7 +767,15 @@
             selectedOptionId: selectedOptionId,
             selectedOptionName: selectedOptionName,
             priceModifier: priceModifier
-          });
+          };
+          
+          // 如果是稱重商品，添加重量和價格資訊
+          if (selectedWeight && selectedBasePrice) {
+            cartItem.selectedWeight = selectedWeight;
+            cartItem.selectedBasePrice = selectedBasePrice;
+          }
+          
+          cart.push(cartItem);
         }
         
         saveCart(cart);

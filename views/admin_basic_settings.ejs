@@ -296,7 +296,7 @@
         // 全域變數
         let currentSettings = {};
         let allCategories = {};
-        let activeCategory = 'theme';
+        let activeCategory = 'notifications';
 
         // 頁面初始化
         document.addEventListener('DOMContentLoaded', function() {
@@ -328,6 +328,7 @@
         function renderCategoryTabs() {
             const tabsContainer = document.getElementById('category-tabs');
             const categoryNames = {
+                'notifications': '📢 通知訊息',
                 'theme': '🎨 主題色彩',
                 'theme_advanced': '🎯 進階主題',
                 'business': '💰 營業設定',
@@ -479,6 +480,7 @@
         // 取得分類顯示名稱
         function getCategoryDisplayName(category) {
             const names = {
+                'notifications': '📢 通知訊息設定',
                 'theme': '🎨 主題色彩設定',
                 'theme_advanced': '🎯 進階主題設定',
                 'business': '💰 營業參數設定',

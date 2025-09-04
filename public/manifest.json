@@ -3,11 +3,12 @@
   "short_name": "承億外送",
   "description": "承億蔬菜外送員專用配送系統",
   "start_url": "/driver",
-  "display": "standalone",
-  "background_color": "#27ae60",
-  "theme_color": "#27ae60",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone", "minimal-ui"],
+  "background_color": "#000000",
+  "theme_color": "#28a745",
   "orientation": "portrait",
-  "scope": "/driver",
+  "scope": "/",
   "icons": [
     {
       "src": "/images/icon-72x72.png",

@@ -420,6 +420,178 @@ ${itemsText}💰 訂單總額：NT$ ${order.total_amount}
   }
   
   /**
+   * 發送配送照片給客戶
+   * @param {Object} order - 訂單資訊
+   * @param {string} photoUrl - 照片URL
+   * @param {string} photoType - 照片類型 ('delivery', 'before_delivery', 'packaging')
+   */
+  async sendDeliveryPhoto(order, photoUrl, photoType = 'delivery') {
+    if (this.demoMode) {
+      console.log('📱 [示範模式] 模擬發送配送照片:', {
+        orderId: order.id,
+        customerName: order.customer_name || order.contact_name,
+        photoUrl: photoUrl,
+        photoType: photoType,
+        lineUserId: 'DEMO_USER_ID'
+      });
+      return { success: true, demo: true };
+    }
+    
+    if (!order.line_user_id) {
+      console.warn(`⚠️ 訂單 #${order.id} 的客戶未綁定LINE ID，改用模擬通知`);
+      return this.simulatePhotoNotification(order, photoUrl, photoType);
+    }
+    
+    try {
+      const photoTypeText = {
+        'delivery': '配送完成',
+        'before_delivery': '準備配送',
+        'packaging': '商品包裝'
+      };
+      
+      const messages = [
+        {
+          type: 'image',
+          originalContentUrl: photoUrl,
+          previewImageUrl: photoUrl
+        },
+        {
+          type: 'text',
+          text: `📸 ${photoTypeText[photoType] || '配送'}照片\n\n訂單編號：#${order.id}\n客戶：${order.customer_name || order.contact_name}\n\n📍 此照片為配送記錄，如有問題請聯繫我們\n\n🙏 謝謝您選擇誠憶鮮蔬！`
+        }
+      ];
+      
+      await this.client.pushMessage(order.line_user_id, messages);
+      
+      console.log(`✅ 已發送配送照片給客戶 ${order.customer_name || order.contact_name} (訂單 #${order.id})`);
+      
+      // 記錄發送狀態到資料庫
+      await this.recordNotificationSent(order.id, `photo_${photoType}`, 'success');
+      
+      return { success: true };
+      
+    } catch (error) {
+      console.error(`❌ 發送配送照片失敗 (訂單 #${order.id}):`, error.message);
+      
+      // 記錄發送失敗
+      await this.recordNotificationSent(order.id, `photo_${photoType}`, 'failed', error.message);
+      
+      return { success: false, error: error.message };
+    }
+  }
+  
+  /**
+   * 發送問題回報通知給管理員
+   * @param {Object} order - 訂單資訊
+   * @param {Object} problem - 問題資訊
+   * @param {number} driverId - 外送員ID
+   */
+  async sendProblemReport(order, problem, driverId) {
+    if (this.demoMode) {
+      console.log('📱 [示範模式] 模擬發送問題回報:', {
+        orderId: order.id,
+        problemType: problem.problem_type,
+        description: problem.problem_description,
+        driverId: driverId
+      });
+      return { success: true, demo: true };
+    }
+    
+    // 發送給管理員的LINE群組或個人帳號
+    const adminLineId = process.env.ADMIN_LINE_ID || process.env.LINE_ADMIN_USER_ID;
+    
+    if (!adminLineId) {
+      console.warn('⚠️ 未設定管理員LINE ID，使用模擬通知');
+      return this.simulateProblemNotification(order, problem, driverId);
+    }
+    
+    try {
+      const problemTypeText = {
+        'customer_not_home': '客戶不在家',
+        'address_not_found': '地址找不到',
+        'payment_issue': '付款問題',
+        'damaged_goods': '商品損壞',
+        'other': '其他問題'
+      };
+      
+      const messageText = `🚨 配送問題回報
+      
+📋 訂單資訊：
+• 訂單編號：#${order.id}
+• 客戶：${order.customer_name || order.contact_name}
+• 電話：${order.customer_phone || order.contact_phone}
+• 地址：${order.address}
+
+⚠️ 問題類型：${problemTypeText[problem.problem_type] || problem.problem_type}
+
+📝 問題描述：
+${problem.problem_description || '無詳細描述'}
+
+👤 回報外送員：司機 #${driverId}
+⏰ 回報時間：${new Date().toLocaleString('zh-TW')}
+
+🔧 請盡快處理此問題`;
+
+      await this.client.pushMessage(adminLineId, {
+        type: 'text',
+        text: messageText
+      });
+      
+      console.log(`✅ 已發送問題回報給管理員 (訂單 #${order.id})`);
+      
+      // 記錄發送狀態到資料庫
+      await this.recordNotificationSent(order.id, 'problem_report', 'success');
+      
+      return { success: true };
+      
+    } catch (error) {
+      console.error(`❌ 發送問題回報失敗 (訂單 #${order.id}):`, error.message);
+      
+      // 記錄發送失敗
+      await this.recordNotificationSent(order.id, 'problem_report', 'failed', error.message);
+      
+      return { success: false, error: error.message };
+    }
+  }
+  
+  /**
+   * 模擬照片通知（用於無LINE ID的客戶）
+   * @param {Object} order - 訂單資訊
+   * @param {string} photoUrl - 照片URL
+   * @param {string} photoType - 照片類型
+   */
+  simulatePhotoNotification(order, photoUrl, photoType) {
+    console.log('🔔 ===== 模擬配送照片通知 =====');
+    console.log(`收件人: ${order.customer_name || order.contact_name} (${order.customer_phone || order.contact_phone})`);
+    console.log(`訂單編號: #${order.id}`);
+    console.log(`照片類型: ${photoType}`);
+    console.log(`照片URL: ${photoUrl}`);
+    console.log('通知內容: 您的訂單配送照片已拍攝完成');
+    console.log('============================');
+    
+    return { success: true, method: 'SIMULATION' };
+  }
+  
+  /**
+   * 模擬問題回報通知
+   * @param {Object} order - 訂單資訊  
+   * @param {Object} problem - 問題資訊
+   * @param {number} driverId - 外送員ID
+   */
+  simulateProblemNotification(order, problem, driverId) {
+    console.log('🚨 ===== 模擬問題回報通知 =====');
+    console.log(`訂單編號: #${order.id}`);
+    console.log(`客戶: ${order.customer_name || order.contact_name}`);
+    console.log(`問題類型: ${problem.problem_type}`);
+    console.log(`問題描述: ${problem.problem_description || '無詳細描述'}`);
+    console.log(`回報外送員: 司機 #${driverId}`);
+    console.log(`回報時間: ${new Date().toLocaleString('zh-TW')}`);
+    console.log('============================');
+    
+    return { success: true, method: 'SIMULATION' };
+  }
+
+  /**
    * 檢查服務狀態
    */
   getStatus() {

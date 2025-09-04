@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chengyiveg-driver-v1.0.0';
+const CACHE_NAME = 'chengyiveg-driver-v1.1.0';
 const urlsToCache = [
   '/driver',
   '/driver/login',

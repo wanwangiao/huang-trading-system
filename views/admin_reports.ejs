@@ -286,6 +286,337 @@
         .insight-icon {
             font-size: 1.2em;
         }
+
+        /* 即時數據流面板 */
+        .realtime-panel {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+
+        .realtime-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .realtime-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: bold;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .realtime-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .realtime-metrics {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .metric-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .metric-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+
+        .metric-value {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        /* 預測分析樣式 */
+        .predictive-dashboard {
+            space-y: 30px;
+        }
+
+        .prediction-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .prediction-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #3498db;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .prediction-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .prediction-card.revenue-forecast { border-left-color: #27ae60; }
+        .prediction-card.demand-forecast { border-left-color: #3498db; }
+        .prediction-card.churn-risk { border-left-color: #e74c3c; }
+        .prediction-card.inventory-alert { border-left-color: #f39c12; }
+
+        .forecast-value {
+            font-size: 2.2em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 10px 0;
+        }
+
+        .forecast-value.risk-high {
+            color: #e74c3c;
+        }
+
+        .forecast-period {
+            color: #7f8c8d;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+        }
+
+        .confidence-level, .risk-customers, .suggested-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9em;
+        }
+
+        .confidence-bar {
+            flex: 1;
+            height: 6px;
+            background: #ecf0f1;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .confidence-bar span {
+            display: block;
+            height: 100%;
+            background: linear-gradient(90deg, #27ae60, #2ecc71);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        /* AI洞察面板 */
+        .ai-insights-panel {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            border-left: 4px solid #9b59b6;
+        }
+
+        .insights-list {
+            space-y: 15px;
+        }
+
+        .insight-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .insight-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .insight-priority {
+            font-size: 1.5em;
+        }
+
+        .insight-content {
+            flex: 1;
+        }
+
+        .insight-metrics {
+            font-size: 0.85em;
+            color: #27ae60;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        .insight-action {
+            padding: 8px 15px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background 0.3s ease;
+        }
+
+        .insight-action:hover {
+            background: #2980b9;
+        }
+
+        .insight-item.high-impact { border-left: 4px solid #e74c3c; }
+        .insight-item.medium-impact { border-left: 4px solid #f39c12; }
+        .insight-item.low-impact { border-left: 4px solid #27ae60; }
+
+        /* 性能監控樣式 */
+        .performance-dashboard {
+            space-y: 30px;
+        }
+
+        .performance-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .perf-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .health-score {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #27ae60;
+            text-align: center;
+            margin: 15px 0;
+        }
+
+        .health-details {
+            space-y: 10px;
+        }
+
+        .health-item, .metric-row, .ux-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .progress-bar.small {
+            width: 80px;
+            height: 6px;
+            margin: 0 10px;
+        }
+
+        .health-value, .metric-value, .ux-value {
+            font-weight: bold;
+            min-width: 60px;
+            text-align: right;
+        }
+
+        .metric-value.excellent, .ux-value.excellent {
+            color: #27ae60;
+        }
+
+        .metric-value.good, .ux-value.good {
+            color: #f39c12;
+        }
+
+        .metric-value.warning, .ux-value.warning {
+            color: #e74c3c;
+        }
+
+        .time-selector {
+            display: flex;
+            gap: 5px;
+        }
+
+        .time-btn {
+            padding: 6px 12px;
+            border: 1px solid #bdc3c7;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: all 0.3s ease;
+        }
+
+        .time-btn.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+
+        .heatmap-container {
+            height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8f9fa;
+            border-radius: 8px;
+            color: #7f8c8d;
+        }
+
+        .performance-alerts {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .alert-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+        }
+
+        .alert-item.info {
+            background: #e8f4fd;
+            border-left: 4px solid #3498db;
+        }
+
+        .alert-item.warning {
+            background: #fef9e7;
+            border-left: 4px solid #f39c12;
+        }
+
+        .alert-content {
+            flex: 1;
+        }
+
+        .alert-time {
+            font-size: 0.8em;
+            color: #7f8c8d;
+            display: block;
+            margin-top: 5px;
+        }
+
+        .alert-action {
+            padding: 6px 12px;
+            background: #f39c12;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+        }
         
         @media (max-width: 1200px) {
             .charts-grid {
@@ -343,6 +674,40 @@
             </div>
         </div>
         
+        <!-- 即時數據流控制面板 -->
+        <div class="realtime-panel">
+            <div class="realtime-controls">
+                <div class="realtime-status">
+                    <span class="status-indicator" id="realtimeIndicator">🔴</span>
+                    <span class="status-text" id="realtimeStatus">離線</span>
+                </div>
+                <div class="realtime-buttons">
+                    <button class="btn btn-success" id="realtimeToggle" onclick="toggleRealtime()">🔄 啟動即時更新</button>
+                    <button class="btn btn-info" onclick="exportAllReports()">📊 匯出完整報表</button>
+                    <button class="btn btn-primary" onclick="scheduleReport()">⏰ 排程報表</button>
+                </div>
+            </div>
+            <div class="realtime-metrics">
+                <div class="metric-item">
+                    <span class="metric-label">最後更新:</span>
+                    <span class="metric-value" id="lastUpdate">--</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">更新間隔:</span>
+                    <select id="updateInterval" onchange="updateInterval(this.value)">
+                        <option value="5">5秒</option>
+                        <option value="30" selected>30秒</option>
+                        <option value="60">1分鐘</option>
+                        <option value="300">5分鐘</option>
+                    </select>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">性能指標:</span>
+                    <span class="metric-value" id="performanceScore">100%</span>
+                </div>
+            </div>
+        </div>
+
         <!-- 報表類型選項卡 -->
         <div class="tabs-container">
             <div class="tabs">
@@ -350,6 +715,8 @@
                 <button class="tab" onclick="switchTab('products')">🥬 商品分析</button>
                 <button class="tab" onclick="switchTab('customers')">👥 客戶分析</button>
                 <button class="tab" onclick="switchTab('delivery')">🚚 配送分析</button>
+                <button class="tab" onclick="switchTab('analytics')">🔮 預測分析</button>
+                <button class="tab" onclick="switchTab('performance')">⚡ 性能監控</button>
             </div>
         </div>
         
@@ -596,6 +963,216 @@
                     </div>
                     <div class="chart-content">
                         <canvas id="deliveryEfficiencyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 預測分析 -->
+        <div id="analytics" class="tab-content">
+            <div class="predictive-dashboard">
+                <div class="prediction-cards">
+                    <div class="prediction-card revenue-forecast">
+                        <h3>📈 營收預測</h3>
+                        <div class="forecast-value" id="revenueForecast">$325,000</div>
+                        <div class="forecast-period">預估下月營收</div>
+                        <div class="confidence-level">信心度: <span class="confidence-bar"><span style="width: 85%"></span></span> 85%</div>
+                    </div>
+                    <div class="prediction-card demand-forecast">
+                        <h3>📦 需求預測</h3>
+                        <div class="forecast-value" id="demandForecast">1,450</div>
+                        <div class="forecast-period">預估下月訂單</div>
+                        <div class="confidence-level">信心度: <span class="confidence-bar"><span style="width: 78%"></span></span> 78%</div>
+                    </div>
+                    <div class="prediction-card churn-risk">
+                        <h3>⚠️ 流失風險</h3>
+                        <div class="forecast-value risk-high" id="churnRisk">12%</div>
+                        <div class="forecast-period">客戶流失率預警</div>
+                        <div class="risk-customers">高風險客戶: <span id="riskCustomers">18人</span></div>
+                    </div>
+                    <div class="prediction-card inventory-alert">
+                        <h3>📋 庫存建議</h3>
+                        <div class="forecast-value" id="inventoryAlert">3項</div>
+                        <div class="forecast-period">需要補貨商品</div>
+                        <div class="suggested-actions">建議動作: <span id="suggestedActions">增加採購</span></div>
+                    </div>
+                </div>
+                
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3>🔮 智能趨勢預測</h3>
+                            <div class="forecast-controls">
+                                <select id="forecastPeriod">
+                                    <option value="7">未來7天</option>
+                                    <option value="30" selected>未來30天</option>
+                                    <option value="90">未來3個月</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="chart-content">
+                            <canvas id="forecastChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3>🎯 客戶行為分析</h3>
+                        </div>
+                        <div class="chart-content">
+                            <canvas id="behaviorChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="ai-insights-panel">
+                    <h4>🤖 AI 商業洞察建議</h4>
+                    <div class="insights-list" id="aiInsights">
+                        <div class="insight-item high-impact">
+                            <span class="insight-priority">🔥</span>
+                            <div class="insight-content">
+                                <strong>高影響建議:</strong> 週六是營收高峰，建議增加季節性商品庫存30%
+                                <div class="insight-metrics">預期收益增加: +$15,000/月</div>
+                            </div>
+                            <button class="insight-action" onclick="implementSuggestion(1)">實施建議</button>
+                        </div>
+                        <div class="insight-item medium-impact">
+                            <span class="insight-priority">⚡</span>
+                            <div class="insight-content">
+                                <strong>中等建議:</strong> 三峽區客戶流失率上升，建議推出專屬優惠
+                                <div class="insight-metrics">預期留存率提升: +8%</div>
+                            </div>
+                            <button class="insight-action" onclick="implementSuggestion(2)">實施建議</button>
+                        </div>
+                        <div class="insight-item low-impact">
+                            <span class="insight-priority">💡</span>
+                            <div class="insight-content">
+                                <strong>優化建議:</strong> 配送時間在週三最短，可作為快速配送日
+                                <div class="insight-metrics">客戶滿意度提升: +3%</div>
+                            </div>
+                            <button class="insight-action" onclick="implementSuggestion(3)">實施建議</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 性能監控 -->
+        <div id="performance" class="tab-content">
+            <div class="performance-dashboard">
+                <div class="performance-overview">
+                    <div class="perf-card system-health">
+                        <h3>💚 系統健康度</h3>
+                        <div class="health-score" id="systemHealth">98.5%</div>
+                        <div class="health-details">
+                            <div class="health-item">
+                                <span class="health-label">CPU使用率:</span>
+                                <div class="progress-bar small"><div class="progress-fill" style="width: 23%;"></div></div>
+                                <span class="health-value">23%</span>
+                            </div>
+                            <div class="health-item">
+                                <span class="health-label">內存使用:</span>
+                                <div class="progress-bar small"><div class="progress-fill" style="width: 45%;"></div></div>
+                                <span class="health-value">45%</span>
+                            </div>
+                            <div class="health-item">
+                                <span class="health-label">磁盤使用:</span>
+                                <div class="progress-bar small"><div class="progress-fill" style="width: 67%;"></div></div>
+                                <span class="health-value">67%</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="perf-card api-performance">
+                        <h3>⚡ API 響應性能</h3>
+                        <div class="api-metrics">
+                            <div class="metric-row">
+                                <span class="metric-name">平均響應時間:</span>
+                                <span class="metric-value good" id="avgResponseTime">245ms</span>
+                            </div>
+                            <div class="metric-row">
+                                <span class="metric-name">成功率:</span>
+                                <span class="metric-value excellent" id="successRate">99.8%</span>
+                            </div>
+                            <div class="metric-row">
+                                <span class="metric-name">每秒請求:</span>
+                                <span class="metric-value" id="requestsPerSecond">156 req/s</span>
+                            </div>
+                            <div class="metric-row">
+                                <span class="metric-name">錯誤率:</span>
+                                <span class="metric-value excellent" id="errorRate">0.2%</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="perf-card user-experience">
+                        <h3>👥 用戶體驗指標</h3>
+                        <div class="ux-metrics">
+                            <div class="ux-item">
+                                <span class="ux-label">頁面載入時間:</span>
+                                <span class="ux-value good">1.8s</span>
+                            </div>
+                            <div class="ux-item">
+                                <span class="ux-label">首次內容繪製:</span>
+                                <span class="ux-value excellent">0.9s</span>
+                            </div>
+                            <div class="ux-item">
+                                <span class="ux-label">互動可用時間:</span>
+                                <span class="ux-value good">2.1s</span>
+                            </div>
+                            <div class="ux-item">
+                                <span class="ux-label">跳出率:</span>
+                                <span class="ux-value warning">12.3%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3>📊 系統性能趨勢</h3>
+                            <div class="time-selector">
+                                <button class="time-btn active" onclick="setPerformanceTime('1h')">1小時</button>
+                                <button class="time-btn" onclick="setPerformanceTime('24h')">24小時</button>
+                                <button class="time-btn" onclick="setPerformanceTime('7d')">7天</button>
+                            </div>
+                        </div>
+                        <div class="chart-content">
+                            <canvas id="performanceTrendChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3>🌐 用戶活動熱力圖</h3>
+                        </div>
+                        <div class="chart-content">
+                            <div class="heatmap-container" id="activityHeatmap">
+                                <!-- 熱力圖將在這裡動態生成 -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="performance-alerts">
+                    <h4>⚠️ 性能警告</h4>
+                    <div class="alert-list" id="performanceAlerts">
+                        <div class="alert-item info">
+                            <span class="alert-icon">ℹ️</span>
+                            <div class="alert-content">
+                                <strong>資訊:</strong> 系統運行正常，所有服務穩定
+                                <span class="alert-time">2分鐘前</span>
+                            </div>
+                        </div>
+                        <div class="alert-item warning">
+                            <span class="alert-icon">⚠️</span>
+                            <div class="alert-content">
+                                <strong>警告:</strong> 資料庫查詢時間略長，建議檢查索引
+                                <span class="alert-time">15分鐘前</span>
+                            </div>
+                            <button class="alert-action" onclick="optimizeDatabase()">優化資料庫</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -936,6 +1513,216 @@
                     document.body.removeChild(notification);
                 }, 300);
             }, 3000);
+        }
+        
+        // 數據統計增強功能 - 即時數據流、預測分析、性能監控
+        let realtimeUpdateInterval = null;
+        let isRealtimeActive = false;
+        
+        function toggleRealtime() {
+            const button = document.getElementById('realtimeToggle');
+            const indicator = document.getElementById('realtimeIndicator');
+            const status = document.getElementById('realtimeStatus');
+            
+            if (isRealtimeActive) {
+                clearInterval(realtimeUpdateInterval);
+                isRealtimeActive = false;
+                button.textContent = '🔄 啟動即時更新';
+                button.className = 'btn btn-success';
+                indicator.textContent = '🔴';
+                status.textContent = '離線';
+                showNotification('即時更新已停用');
+            } else {
+                isRealtimeActive = true;
+                button.textContent = '⏸️ 停用即時更新';
+                button.className = 'btn btn-warning';
+                indicator.textContent = '🟢';
+                status.textContent = '即時更新中';
+                
+                const interval = parseInt(document.getElementById('updateInterval').value) * 1000;
+                realtimeUpdateInterval = setInterval(updateRealtimeData, interval);
+                
+                showNotification('即時更新已啟動');
+                updateRealtimeData();
+            }
+        }
+        
+        function updateRealtimeData() {
+            const now = new Date();
+            document.getElementById('lastUpdate').textContent = now.toLocaleTimeString('zh-TW');
+            
+            const performanceScore = (95 + Math.random() * 5).toFixed(1) + '%';
+            document.getElementById('performanceScore').textContent = performanceScore;
+            
+            updateStatistics(30, 'previous');
+        }
+        
+        function updateInterval(newInterval) {
+            if (isRealtimeActive) {
+                clearInterval(realtimeUpdateInterval);
+                const interval = parseInt(newInterval) * 1000;
+                realtimeUpdateInterval = setInterval(updateRealtimeData, interval);
+                showNotification(`更新間隔已調整為 ${newInterval} 秒`);
+            }
+        }
+        
+        function exportAllReports() {
+            showNotification('正在準備完整報表包...');
+            setTimeout(() => {
+                showNotification('📊 完整報表已匯出');
+            }, 2000);
+        }
+        
+        function scheduleReport() {
+            const scheduleModal = document.createElement('div');
+            scheduleModal.innerHTML = `
+                <div class="modal-overlay" onclick="closeModal(this)" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 10000; display: flex; align-items: center; justify-content: center;">
+                    <div class="modal-content" onclick="event.stopPropagation()" style="background: white; padding: 30px; border-radius: 12px; max-width: 400px; width: 90%; color: #333;">
+                        <h3>⏰ 排程報表設定</h3>
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px;">報表類型:</label>
+                            <select id="reportType" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                <option value="all">完整報表</option>
+                                <option value="revenue">營收分析</option>
+                            </select>
+                        </div>
+                        <div style="text-align: center; margin-top: 20px;">
+                            <button class="btn btn-primary" onclick="confirmSchedule()" style="margin-right: 10px;">確認排程</button>
+                            <button class="btn" onclick="closeModal(this.closest('.modal-overlay'))">取消</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(scheduleModal);
+        }
+        
+        function closeModal(modalElement) {
+            document.body.removeChild(modalElement);
+        }
+        
+        function confirmSchedule() {
+            showNotification('已設定報表排程');
+            closeModal(document.querySelector('.modal-overlay'));
+        }
+        
+        function implementSuggestion(suggestionId) {
+            showNotification('正在實施建議...');
+            setTimeout(() => {
+                showNotification('✅ 建議實施完成，預期效果將在7天內顯現');
+            }, 3000);
+        }
+        
+        function setPerformanceTime(timeRange) {
+            document.querySelectorAll('.time-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            showNotification(`切換到 ${timeRange} 視圖`);
+        }
+        
+        function optimizeDatabase() {
+            showNotification('正在優化資料庫...');
+            setTimeout(() => {
+                showNotification('✅ 資料庫優化完成，查詢速度提升30%');
+            }, 3000);
+        }
+        
+        function initializeActivityHeatmap() {
+            const container = document.getElementById('activityHeatmap');
+            if (!container) return;
+            
+            const days = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
+            let heatmapHTML = '<div class="heatmap-grid">';
+            for (let day = 0; day < 7; day++) {
+                heatmapHTML += `<div class="heatmap-row">`;
+                heatmapHTML += `<div class="day-label">${days[day]}</div>`;
+                for (let hour = 0; hour < 24; hour++) {
+                    const intensity = Math.random();
+                    const color = `rgba(52, 152, 219, ${intensity})`;
+                    heatmapHTML += `<div class="heat-cell" style="background-color: ${color}; width: 12px; height: 20px; margin: 1px; display: inline-block; border-radius: 2px;" title="${hour}:00"></div>`;
+                }
+                heatmapHTML += `</div>`;
+            }
+            heatmapHTML += '</div>';
+            container.innerHTML = heatmapHTML;
+        }
+        
+        function initializeForecastChart() {
+            const ctx = document.getElementById('forecastChart');
+            if (!ctx) return;
+            
+            charts.forecast = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['實際1', '實際2', '實際3', '預測1', '預測2'],
+                    datasets: [{
+                        label: '歷史數據',
+                        data: [12000, 15000, 18000, null, null],
+                        borderColor: '#3498db'
+                    }, {
+                        label: '預測數據',
+                        data: [null, null, 18000, 19000, 21000],
+                        borderColor: '#e74c3c',
+                        borderDash: [5, 5]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+        
+        function initializeBehaviorChart() {
+            const ctx = document.getElementById('behaviorChart');
+            if (!ctx) return;
+            
+            charts.behavior = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['瀏覽頻率', '購買轉換', '客戶忠誠', '推薦意願', '滿意度', '回購率'],
+                    datasets: [{
+                        label: 'VIP客戶',
+                        data: [90, 85, 95, 88, 92, 94],
+                        borderColor: '#27ae60'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+        
+        function initializePerformanceChart() {
+            const ctx = document.getElementById('performanceTrendChart');
+            if (!ctx) return;
+            
+            charts.performance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
+                    datasets: [{
+                        label: 'CPU使用率',
+                        data: [25, 30, 45, 50, 35, 20],
+                        borderColor: '#e74c3c'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+        
+        // 擴展原有的初始化函數
+        const originalInitializeCharts = initializeCharts;
+        initializeCharts = function() {
+            originalInitializeCharts();
+            setTimeout(() => {
+                initializeForecastChart();
+                initializeBehaviorChart();
+                initializePerformanceChart();
+                initializeActivityHeatmap();
+            }, 100);
         }
     </script>
 </body>

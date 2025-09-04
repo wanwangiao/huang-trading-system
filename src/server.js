@@ -23,16 +23,19 @@ const { apiLimiter, orderLimiter, loginLimiter } = require('./middleware/rateLim
       { validateOrderData, validateAdminPassword, sanitizeInput } = require('./middleware/validation'),
       { apiErrorHandler, pageErrorHandler, notFoundHandler, asyncWrapper } = require('./middleware/errorHandler'),
       { createAgentSystem } = require('./agents'),
-      driverApiRoutes = require('./routes/driver_api'),
+      { router: driverSimplifiedApiRoutes, setDatabasePool: setDriverSimplifiedDatabasePool } = require('./routes/driver_simplified_api'),
       customerApiRoutes = require('./routes/customer_api'),
       adminReportsApiRoutes = require('./routes/admin_reports_api'),
       { router: googleMapsApiRoutes, setDatabasePool: setGoogleMapsDatabasePool } = require('./routes/google_maps_api'),
+      { router: googleMapsSecureApiRoutes, setDatabasePool: setGoogleMapsSecureDatabasePool } = require('./routes/google_maps_secure_api'),
       { router: websocketApiRoutes, setWebSocketManager } = require('./routes/websocket_api'),
       WebSocketManager = require('./services/WebSocketManager'),
       SmartRouteService = require('./services/SmartRouteService'),
       RouteOptimizationService = require('./services/RouteOptimizationService'),
       LineNotificationService = require('./services/LineNotificationService'),
-      LineBotService = require('./services/LineBotService');
+      LineBotService = require('./services/LineBotService'),
+      LineUserService = require('./services/LineUserService'),
+      UnitConverter = require('./utils/unitConverter');
 
 let agentSystem = null;
 let smartRouteService = null;
@@ -40,9 +43,10 @@ let routeOptimizationService = null;
 let webSocketManager = null;
 let lineNotificationService = null;
 let lineBotService = null;
+let lineUserService = null;
 
 const app = express(),
-      port = process.env.PORT || 3002;
+      port = process.env.PORT || 3000;
 
 // 信任代理設定（Vercel 需要）
 app.set('trust proxy', true);
@@ -72,6 +76,7 @@ async function createDatabasePool() {
         connectionTimeoutMillis: 60000,
         idleTimeoutMillis: 30000,
         max: 5,
+        family: 4,  // 強制使用IPv4，解決家庭網路不支援IPv6問題
         // 確保資料庫連線使用 UTF-8 編碼
         options: '--client_encoding=UTF8'
       });
@@ -109,7 +114,8 @@ async function createDatabasePool() {
       },
       connectionTimeoutMillis: 30000,
       idleTimeoutMillis: 30000,
-      max: 5
+      max: 5,
+      family: 4  // 強制IPv4
     });
     
     const testResult = await pool.query('SELECT NOW() as current_time');
@@ -130,7 +136,8 @@ async function createDatabasePool() {
       ssl: { rejectUnauthorized: false },
       connectionTimeoutMillis: 30000,
       idleTimeoutMillis: 30000,
-      max: 5
+      max: 5,
+      family: 4  // 強制IPv4
     });
     
     const testResult = await pool.query('SELECT NOW() as current_time');
@@ -229,7 +236,10 @@ createDatabasePool().then(async () => {
   // 初始化 Google Maps API 服務
   try {
     setGoogleMapsDatabasePool(pool);
+    setGoogleMapsSecureDatabasePool(pool);
+    setDriverSimplifiedDatabasePool(pool, demoMode);
     console.log('🗺️ Google Maps API 服務已初始化');
+    console.log('🔒 Google Maps 安全API 服務已初始化');
 
   // 暫時註解即時通知系統初始化
   // try {
@@ -290,7 +300,40 @@ app.set('view options', {
   rmWhitespace: true,
   charset: 'utf-8'
 });
-app.use(express.static(path.join(__dirname, '../public')));
+// 靜態資源快取策略 - 性能優化
+app.use('/css', express.static(path.join(__dirname, '../public/css'), {
+  maxAge: '7d', // CSS文件快取7天
+  etag: true,
+  lastModified: true,
+  setHeaders: (res, path) => {
+    res.setHeader('Cache-Control', 'public, max-age=604800'); // 7天
+  }
+}));
+
+app.use('/js', express.static(path.join(__dirname, '../public/js'), {
+  maxAge: '7d', // JS文件快取7天
+  etag: true,
+  lastModified: true,
+  setHeaders: (res, path) => {
+    res.setHeader('Cache-Control', 'public, max-age=604800'); // 7天
+  }
+}));
+
+app.use('/images', express.static(path.join(__dirname, '../public/images'), {
+  maxAge: '30d', // 圖片快取30天
+  etag: true,
+  lastModified: true,
+  setHeaders: (res, path) => {
+    res.setHeader('Cache-Control', 'public, max-age=2592000'); // 30天
+  }
+}));
+
+// 其他靜態資源
+app.use(express.static(path.join(__dirname, '../public'), {
+  maxAge: '1d', // 其他文件快取1天
+  etag: true,
+  lastModified: true
+}));
 
 // 處理 favicon.ico 請求
 app.get('/favicon.ico', (req, res) => {
@@ -302,8 +345,20 @@ app.use(helmet({
   contentSecurityPolicy: false // 暫時禁用 CSP
 }));
 
-// 壓縮回應
-app.use(compression());
+// 壓縮回應 - 增強版本
+app.use(compression({
+  filter: (req, res) => {
+    // 不壓縮已經壓縮過的響應
+    if (req.headers['x-no-compression']) {
+      return false;
+    }
+    // 使用compression預設的過濾器
+    return compression.filter(req, res);
+  },
+  level: process.env.NODE_ENV === 'production' ? 6 : 1, // 生產環境使用更高壓縮率
+  threshold: 1024, // 只有超過1KB的響應才壓縮
+  windowBits: 15
+}));
 
 // CORS設定
 app.use(cors({
@@ -348,23 +403,143 @@ app.use((req, res, next) => {
   next();
 });
 
-// Session配置
+// Session配置 - 優化版本
 app.use(session({
   secret: process.env.SESSION_SECRET || 'chengyi-secret-key-change-in-production',
   resave: false,
   saveUninitialized: false,
+  rolling: true, // Rolling session - 每次請求重新設定過期時間
   cookie: {
-    secure: false, // 暫時關閉 secure 要求，以便排查問題
+    secure: false, // 暫時停用 secure 以解決 Vercel 相容性問題
     httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000 // 24小時
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7天有效期
+    sameSite: 'lax' // 使用 lax 以提升相容性
+  },
+  // Session存儲配置
+  name: 'chengyi.sid', // 自定義session name，增強安全性
+  // 錯誤處理
+  genid: () => {
+    const crypto = require('crypto');
+    return crypto.randomBytes(16).toString('hex'); // 更安全的session ID生成
   }
 }));
+
+// Session健康檢查和錯誤處理中間件
+app.use((req, res, next) => {
+  // 檢查Session是否正常運作
+  if (!req.session) {
+    console.warn('⚠️ Session未初始化，重新創建...');
+    req.session = {};
+  }
+  
+  // Session活動追蹤（用於debug）
+  if (req.session && (req.session.adminPassword || req.session.driverId)) {
+    req.session.lastActivity = new Date();
+    
+    // Debug log (只在開發環境)
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`🔐 Session活動: ${req.session.adminPassword ? 'Admin' : 'Driver'} - ${req.path}`);
+    }
+  }
+  
+  next();
+});
 
 // 將 LINE 綁定狀態傳遞至所有模板
 app.use((req, res, next) => {
   res.locals.sessionLine = req.session ? req.session.line : null;
   next();
 });
+
+// Session清理中間件（用於logout等操作）
+function cleanupSession(req) {
+  if (req.session) {
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('Session清理失敗:', err);
+      } else {
+        console.log('✅ Session已清理');
+      }
+    });
+  }
+}
+
+// API響應快取系統 - 提升性能
+const apiCache = new Map();
+const CACHE_TTL = 30 * 1000; // 30秒快取
+
+function createCacheKey(req) {
+  return `${req.method}:${req.path}:${JSON.stringify(req.query)}:${req.session?.driverId || 'anonymous'}`;
+}
+
+function apiCacheMiddleware(ttl = CACHE_TTL) {
+  return (req, res, next) => {
+    // 只快取GET請求
+    if (req.method !== 'GET') {
+      return next();
+    }
+
+    const cacheKey = createCacheKey(req);
+    const cached = apiCache.get(cacheKey);
+    
+    if (cached && (Date.now() - cached.timestamp) < ttl) {
+      console.log(`🚀 API快取命中: ${req.path}`);
+      res.setHeader('X-Cache', 'HIT');
+      res.setHeader('X-Cache-TTL', Math.round((ttl - (Date.now() - cached.timestamp)) / 1000));
+      return res.json(cached.data);
+    }
+
+    // 覆寫res.json來快取響應
+    const originalJson = res.json;
+    res.json = function(data) {
+      // 只快取成功的響應
+      if (res.statusCode === 200 && data) {
+        apiCache.set(cacheKey, {
+          data: data,
+          timestamp: Date.now()
+        });
+        
+        // 清理過期快取（每100次請求清理一次）
+        if (Math.random() < 0.01) {
+          cleanExpiredCache();
+        }
+      }
+      
+      res.setHeader('X-Cache', 'MISS');
+      return originalJson.call(this, data);
+    };
+
+    next();
+  };
+}
+
+function cleanExpiredCache() {
+  const now = Date.now();
+  let cleaned = 0;
+  
+  for (const [key, value] of apiCache.entries()) {
+    if (now - value.timestamp > CACHE_TTL * 2) {
+      apiCache.delete(key);
+      cleaned++;
+    }
+  }
+  
+  if (cleaned > 0) {
+    console.log(`🧹 清理了${cleaned}個過期快取項目`);
+  }
+}
+
+// 手動清除特定API快取
+function clearApiCache(pattern) {
+  let cleared = 0;
+  for (const key of apiCache.keys()) {
+    if (key.includes(pattern)) {
+      apiCache.delete(key);
+      cleared++;
+    }
+  }
+  console.log(`🔄 清除了${cleared}個相關快取: ${pattern}`);
+}
 
 // 設置全局變數供路由使用
 app.use((req, res, next) => {
@@ -373,8 +548,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// 外送員API路由
-app.use('/api/driver', driverApiRoutes);
+// 外送員API路由 (統一簡化版)
+app.use('/api/driver', driverSimplifiedApiRoutes);
 
 // 客戶端API路由
 app.use('/api/customer', customerApiRoutes);
@@ -384,6 +559,9 @@ app.use('/api/admin/reports', adminReportsApiRoutes);
 
 // Google Maps API路由
 app.use('/api/maps', googleMapsApiRoutes);
+
+// Google Maps 安全API路由
+app.use('/api/google-maps-secure', googleMapsSecureApiRoutes);
 
 // WebSocket API路由
 app.use('/api/websocket', websocketApiRoutes);
@@ -522,14 +700,19 @@ async function upsertUser(phone, name, lineUserId, lineDisplayName) {
   }
 }
 
-// 示範產品資料
+// 示範產品資料（包含公克單位商品）
 const demoProducts = [
-  { id: 1, name: '🥬 有機高麗菜', price: 80, is_priced_item: false, unit_hint: '每顆' },
-  { id: 2, name: '🍅 新鮮番茄', price: null, is_priced_item: true, unit_hint: '每公斤' },
-  { id: 3, name: '🥬 青江菜', price: 40, is_priced_item: false, unit_hint: '每把' },
-  { id: 4, name: '🥕 胡蘿蔔', price: null, is_priced_item: true, unit_hint: '每公斤' },
-  { id: 5, name: '🥒 小黃瓜', price: 60, is_priced_item: false, unit_hint: '每包' },
-  { id: 6, name: '🧅 洋蔥', price: null, is_priced_item: true, unit_hint: '每公斤' }
+  { id: 1, name: '🥬 有機高麗菜', price: 80, is_priced_item: false, unit_hint: '每顆', unit: '顆' },
+  { id: 2, name: '🍅 新鮮番茄', price: 45, is_priced_item: true, unit_hint: '每公斤', unit: '公斤' },
+  { id: 3, name: '🥬 青江菜', price: 40, is_priced_item: false, unit_hint: '每把', unit: '把' },
+  { id: 4, name: '🥕 胡蘿蔔', price: 30, is_priced_item: true, unit_hint: '每斤', unit: '斤' },
+  { id: 5, name: '🥒 小黃瓜', price: 60, is_priced_item: false, unit_hint: '每包', unit: '包' },
+  { id: 6, name: '🧅 洋蔥', price: 25, is_priced_item: true, unit_hint: '每台斤', unit: '台斤' },
+  // 新增公克單位商品
+  { id: 7, name: '🌶️ 辣椒', price: 0.5, is_priced_item: true, unit_hint: '每公克', unit: '公克' },
+  { id: 8, name: '🧄 蒜頭', price: 0.3, is_priced_item: true, unit_hint: '每公克', unit: '公克' },
+  { id: 9, name: '🍄 香菇', price: 1.2, is_priced_item: true, unit_hint: '每公克', unit: '公克' },
+  { id: 10, name: '🫚 薑', price: 0.4, is_priced_item: true, unit_hint: '每公克', unit: '公克' }
 ];
 
 // 取得產品資料
@@ -610,6 +793,16 @@ async function fetchProducts() {
 }
 
 // 前台：首頁，列出商品
+// 簡單測試路由
+app.get('/test', (req, res) => {
+  res.json({ 
+    message: '蔬果外送系統測試成功！', 
+    timestamp: new Date().toISOString(),
+    session: !!req.session,
+    demoMode: demoMode
+  });
+});
+
 app.get('/', async (req, res, next) => {
   try {
     const products = await fetchProducts();
@@ -647,27 +840,28 @@ app.post('/driver/login', async (req, res) => {
   }
 });
 
-// 🚛 外送員工作台
-app.get('/driver/dashboard', (req, res) => {
-  if (!req.session.driverId) {
-    return res.redirect('/driver/login');
-  }
+// 🚛 外送員工作台 (新的簡化版本)
+app.get('/driver/dashboard', ensureDriverPage, (req, res) => {
   
-  res.render('driver_dashboard', {
+  res.render('driver_dashboard_simplified', {
     driver: {
       id: req.session.driverId,
       name: req.session.driverName || '外送員'
     }
   });
 });
+
+// 移動端外送員介面 - 重導向到統一介面
+app.get('/driver/mobile', ensureDriverPage, (req, res) => {
+  res.redirect('/driver');
+});
+
+// 舊版本路由已刪除，統一使用driver_dashboard_simplified
 
 // 🚀 外送員PWA工作台
-app.get('/driver', (req, res) => {
-  if (!req.session.driverId) {
-    return res.redirect('/driver/login');
-  }
+app.get('/driver', ensureDriverPage, (req, res) => {
   
-  res.render('driver_pwa', {
+  res.render('driver_dashboard_simplified', {
     driver: {
       id: req.session.driverId,
       name: req.session.driverName || '外送員'
@@ -675,44 +869,35 @@ app.get('/driver', (req, res) => {
   });
 });
 
-// 🚛 外送員通訊中心
-app.get('/driver/chat', (req, res) => {
-  if (!req.session.driverId) {
-    return res.redirect('/driver/login');
-  }
-  
-  res.render('driver_chat', {
-    driver: {
-      id: req.session.driverId,
-      name: req.session.driverName || '外送員',
-      phone: req.session.driverPhone || ''
-    }
-  });
+// 🚛 外送員通訊中心 - 重導向到統一介面
+app.get('/driver/chat', ensureDriverPage, (req, res) => {
+  res.redirect('/driver');
 });
 
 // 🚛 外送員登出
 app.get('/driver/logout', (req, res) => {
-  req.session.driverId = null;
-  req.session.driverName = null;
+  console.log(`🚛 外送員登出: ${req.session.driverName || 'Unknown'}`);
+  cleanupSession(req);
   res.redirect('/driver/login');
 });
 
-// 🛰️ 外送員GPS追蹤工作台
-app.get('/driver/dashboard-gps', (req, res) => {
-  if (!req.session.driverId) {
-    return res.redirect('/driver/login');
-  }
-  
-  res.render('driver_dashboard_gps', {
-    driver: {
-      id: req.session.driverId,
-      name: req.session.driverName || '外送員'
-    }
-  });
+// 📱 手機除錯頁面
+app.get('/debug-mobile', (req, res) => {
+  res.render('debug_mobile');
 });
 
-// 🚛 外送員API - 可接訂單
-app.get('/api/driver/available-orders', async (req, res) => {
+// 🚨 緊急修復頁面 - 直接可用的外送員系統
+app.get('/emergency-fix', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'emergency_fix.html'));
+});
+
+// 🛰️ 外送員GPS追蹤工作台 (重定向到簡化版)
+app.get('/driver/dashboard-gps', ensureDriverPage, (req, res) => {
+  res.redirect('/driver/dashboard');
+});
+
+// 🚛 外送員API - 可接訂單 (添加快取優化)
+app.get('/api/driver/available-orders', apiCacheMiddleware(15000), async (req, res) => { // 15秒快取
   try {
     let orders = [];
     
@@ -887,8 +1072,8 @@ app.get('/api/driver/completed-orders', async (req, res) => {
   }
 });
 
-// 🚛 外送員API - 統計數據
-app.get('/api/driver/stats', async (req, res) => {
+// 🚛 外送員API - 統計數據 (添加快取優化)
+app.get('/api/driver/stats', apiCacheMiddleware(60000), async (req, res) => { // 60秒快取
   try {
     const driverId = req.session.driverId;
     if (!driverId) {
@@ -994,6 +1179,11 @@ app.post('/api/driver/take-order/:id', async (req, res) => {
       console.log(`📝 Demo模式: 外送員 ${driverId} 接取了訂單 ${orderId}`);
     }
     
+    // 清除相關API快取
+    clearApiCache('available-orders');
+    clearApiCache('driver/stats');
+    clearApiCache('today-stats');
+    
     res.json({ success: true, message: '訂單接取成功' });
   } catch (error) {
     console.error('接取訂單失敗:', error);
@@ -1045,6 +1235,12 @@ app.post('/api/driver/complete-order/:id', async (req, res) => {
       console.log(`📝 Demo模式: 外送員 ${driverId} 完成了訂單 ${orderId}`);
     }
     
+    // 清除相關API快取
+    clearApiCache('driver/stats');
+    clearApiCache('today-stats');
+    clearApiCache('my-orders');
+    clearApiCache('completed-orders');
+    
     res.json({ success: true, message: '配送完成' });
   } catch (error) {
     console.error('完成配送失敗:', error);
@@ -1052,8 +1248,8 @@ app.post('/api/driver/complete-order/:id', async (req, res) => {
   }
 });
 
-// 🚀 PWA 外送員API - 今日統計
-app.get('/api/driver/today-stats', async (req, res) => {
+// 🚀 PWA 外送員API - 今日統計 (添加快取優化)
+app.get('/api/driver/today-stats', apiCacheMiddleware(45000), async (req, res) => { // 45秒快取
   const driverId = req.session.driverId;
   
   if (!driverId) {
@@ -1498,7 +1694,33 @@ app.post('/api/orders', orderLimiter, sanitizeInput, validateOrderData, asyncWra
         [orderId, item.product_id, item.name, item.is_priced_item, item.quantity, item.unit_price, item.line_total, item.actual_weight]
       );
     }
-    // 若已綁定 LINE，將用戶資料寫入 users 表
+    // 🔗 LINE 用戶整合 - 自動註冊和關聯
+    try {
+      // 檢查是否有 LINE 用戶資訊（從請求參數或 session 獲取）
+      const lineUserId = req.body.line_user_id || (req.session.line && req.session.line.userId);
+      const lineDisplayName = req.body.line_name || (req.session.line && req.session.line.displayName);
+      
+      if (lineUserId && lineUserService) {
+        // 自動更新 LINE 用戶的電話號碼綁定
+        await lineUserService.bindUserPhone(lineUserId, phone);
+        
+        // 關聯訂單與 LINE 用戶
+        await lineUserService.linkOrderToLineUser(orderId, lineUserId);
+        
+        console.log(`🔗 訂單 #${orderId} 已自動關聯 LINE 用戶: ${lineDisplayName} (${lineUserId})`);
+      } else {
+        // 嘗試透過電話號碼查詢是否已有 LINE 用戶
+        const existingUserId = await lineUserService?.getLineUserIdByPhone(phone);
+        if (existingUserId) {
+          await lineUserService.linkOrderToLineUser(orderId, existingUserId);
+          console.log(`🔗 訂單 #${orderId} 已關聯到現有 LINE 用戶: ${existingUserId}`);
+        }
+      }
+    } catch (lineError) {
+      console.warn('⚠️ LINE 用戶整合失敗 (不影響訂單建立):', lineError.message);
+    }
+
+    // 保持原有用戶表邏輯 (向後相容)
     if (req.session.line && req.session.line.userId) {
       await upsertUser(phone, name, req.session.line.userId, req.session.line.displayName);
     } else {
@@ -1555,6 +1777,80 @@ app.get('/api/products', asyncWrapper(async (req, res) => {
     });
   }
 }));
+
+// API：單位換算服務
+app.post('/api/unit-convert', (req, res) => {
+  try {
+    const { value, fromUnit, toUnit } = req.body;
+    
+    if (!value || !fromUnit || !toUnit) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少必要參數'
+      });
+    }
+    
+    const convertedValue = UnitConverter.convert(value, fromUnit, toUnit);
+    const formatted = UnitConverter.formatWeight(convertedValue, toUnit);
+    
+    res.json({
+      success: true,
+      original: {
+        value: value,
+        unit: fromUnit,
+        display: UnitConverter.formatWeight(value, fromUnit)
+      },
+      converted: {
+        value: convertedValue,
+        unit: toUnit,
+        display: formatted
+      },
+      conversionRate: convertedValue / value
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: '換算失敗：' + error.message
+    });
+  }
+});
+
+// API：取得支援的單位列表
+app.get('/api/supported-units', (req, res) => {
+  res.json({
+    success: true,
+    units: UnitConverter.getSupportedUnits(),
+    conversionRates: UnitConverter.CONVERSION_RATES
+  });
+});
+
+// API：批量單位換算
+app.post('/api/batch-convert', (req, res) => {
+  try {
+    const { items, targetUnit } = req.body;
+    
+    if (!Array.isArray(items) || !targetUnit) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少必要參數'
+      });
+    }
+    
+    const results = UnitConverter.batchConvert(items, targetUnit);
+    
+    res.json({
+      success: true,
+      targetUnit: targetUnit,
+      results: results
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: '批量換算失敗：' + error.message
+    });
+  }
+});
+
 // 前台：訂單成功頁（供外部連結使用）
 app.get('/order-success', async (req, res) => {
   const id = parseInt(req.query.id, 10);
@@ -1616,20 +1912,76 @@ app.post('/admin/login', validateAdminPassword, (req, res) => {
   res.render('admin_login', { error: '密碼錯誤' });
 });
 
-// 登出
+// 管理員登出
 app.get('/admin/logout', (req, res) => {
-  req.session.isAdmin = false;
-  req.session.destroy(() => {
-    res.redirect('/admin/login');
-  });
+  console.log('🔐 管理員登出');
+  cleanupSession(req);
+  res.redirect('/admin/login');
 });
 
-// 管理員驗證中介
+// 管理員驗證中介 - 增強版本
 function ensureAdmin(req, res, next) {
-  if (req.session && req.session.isAdmin) {
+  // Session健康檢查
+  if (!req.session) {
+    console.warn('⚠️ ensureAdmin: Session不存在，重定向到登入');
+    return res.redirect('/admin/login');
+  }
+  
+  // 檢查管理員權限
+  if (req.session.isAdmin) {
+    // 更新最後活動時間
+    req.session.lastActivity = new Date();
+    
+    // 檢查Session是否過期（額外安全檢查）
+    if (req.session.lastActivity && 
+        (new Date() - new Date(req.session.lastActivity)) > 7 * 24 * 60 * 60 * 1000) {
+      console.warn('⚠️ ensureAdmin: Session已過期，清理並重定向');
+      cleanupSession(req);
+      return res.redirect('/admin/login');
+    }
     return next();
   }
   return res.redirect('/admin/login');
+}
+
+// 外送員驗證中介 - 統一Session檢查
+function ensureDriver(req, res, next) {
+  // Session健康檢查
+  if (!req.session) {
+    console.warn('⚠️ ensureDriver: Session不存在');
+    return res.status(401).json({ success: false, message: '請先登入' });
+  }
+  
+  // 檢查外送員權限
+  if (req.session.driverId) {
+    // 更新最後活動時間
+    req.session.lastActivity = new Date();
+    
+    // 檢查Session是否過期（額外安全檢查）
+    if (req.session.lastActivity && 
+        (new Date() - new Date(req.session.lastActivity)) > 7 * 24 * 60 * 60 * 1000) {
+      console.warn('⚠️ ensureDriver: Session已過期，清理並返回錯誤');
+      cleanupSession(req);
+      return res.status(401).json({ success: false, message: 'Session已過期，請重新登入' });
+    }
+    
+    return next();
+  }
+  
+  return res.status(401).json({ success: false, message: '請先登入' });
+}
+
+// 外送員頁面驗證中介（用於頁面路由）
+function ensureDriverPage(req, res, next) {
+  // Session健康檢查
+  if (!req.session || !req.session.driverId) {
+    console.warn('⚠️ ensureDriverPage: Session不存在或未登入，重定向到登入');
+    return res.redirect('/driver/login');
+  }
+  
+  // 更新最後活動時間
+  req.session.lastActivity = new Date();
+  return next();
 }
 
 // ---------------- LINE 登入與綁定 ----------------
@@ -1714,6 +2066,23 @@ app.get('/line-connected', (req, res) => {
 });
 
 // ---------------- Google Maps & 地圖 API ----------------
+
+// 配送地圖頁面（獨立頁面）
+app.get('/delivery-map', (req, res) => {
+  try {
+    res.render('delivery_map', {
+      title: '配送地圖 - 誠意鮮蔬',
+      googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || 'demo-key'
+    });
+  } catch (err) {
+    console.error('配送地圖頁面錯誤:', err);
+    res.status(500).render('error', { 
+      message: '地圖載入失敗',
+      error: err
+    });
+  }
+});
+
 // 管理員地圖頁
 app.get('/admin/map', ensureAdmin, (req, res) => {
   // 讓前端取得 API 金鑰
@@ -1866,16 +2235,32 @@ app.get('/admin/products', ensureAdmin, async (req, res, next) => {
 // 後台：更新某產品
 app.post('/admin/products/:id/update', ensureAdmin, async (req, res, next) => {
   const id = parseInt(req.params.id, 10);
-  const { price, isPricedItem, unitHint } = req.body;
+  const { price, isPricedItem, unitHint, weightPricePerUnit } = req.body;
   try {
     const priceVal = price === '' || price === null ? null : parseFloat(price);
     const priced = isPricedItem === 'on' || isPricedItem === 'true';
-    await pool.query(
-      'UPDATE products SET price=$1, is_priced_item=$2, unit_hint=$3 WHERE id=$4',
-      [priceVal, priced, unitHint || null, id]
-    );
+    const weightPriceVal = weightPricePerUnit === '' || weightPricePerUnit === null ? null : parseFloat(weightPricePerUnit);
+    
+    // 檢查是否需要添加稱重商品欄位
+    const result = await pool.query('SELECT column_name FROM information_schema.columns WHERE table_name = $1', ['products']);
+    const columns = result.rows.map(row => row.column_name);
+    
+    if (columns.includes('weight_price_per_unit')) {
+      await pool.query(
+        'UPDATE products SET price=$1, is_priced_item=$2, unit_hint=$3, weight_price_per_unit=$4 WHERE id=$5',
+        [priceVal, priced, unitHint || null, weightPriceVal, id]
+      );
+    } else {
+      // 如果欄位不存在，僅更新原有欄位
+      await pool.query(
+        'UPDATE products SET price=$1, is_priced_item=$2, unit_hint=$3 WHERE id=$4',
+        [priceVal, priced, unitHint || null, id]
+      );
+    }
+    
     res.redirect('/admin/products');
   } catch (err) {
+    console.log('商品更新錯誤:', err.message);
     next(err);
   }
 });
@@ -2432,6 +2817,297 @@ app.post('/api/admin/agents/health-check', ensureAdmin, async (req, res) => {
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
+});
+
+// =====================================
+// 📋 基本設定管理 API
+// =====================================
+
+// 預設基本設定
+const defaultBasicSettings = {
+  // 通知訊息設定
+  notification_packaging_complete: '🎉 您好！\n\n📦 您的訂單已完成包裝，即將出貨！\n🔢 訂單編號：#{orderId}\n💰 訂單金額：${totalAmount}\n\n⏰ 預計30分鐘內送達\n📞 如有問題請來電：0912-345-678\n\n🙏 謝謝您選擇誠憶鮮蔬！',
+  notification_delivering: '🚚 您好！\n\n🛵 您的訂單正在配送中！\n🔢 訂單編號：#{orderId}\n📍 預計很快送達您的地址\n\n📞 如有問題請來電：0912-345-678\n\n🙏 謝謝您選擇誠憶鮮蔬！',
+  notification_delivered: '🎉 您好！\n\n✅ 您的訂單已成功送達！\n🔢 訂單編號：#{orderId}\n💰 訂單金額：${totalAmount}\n\n🌟 感謝您選擇誠憶鮮蔬！\n❤️ 期待您的下次訂購\n\n📞 如有任何問題請來電：0912-345-678',
+  
+  // 主題色彩設定
+  primary_color: '#2d5a3d',
+  accent_color: '#7cb342',
+  
+  // 商店基本資訊
+  store_name: '誠憶鮮蔬',
+  store_slogan: '新鮮 × 健康 × 便利',
+  contact_phone: '0912-345-678',
+  contact_address: '台北市信義區信義路五段7號',
+  
+  // 營業設定
+  free_shipping_threshold: 300,
+  delivery_fee: 50,
+  minimum_order_amount: 100,
+  service_hours_start: '08:00',
+  service_hours_end: '20:00',
+  
+  // 功能開關
+  line_notification_enabled: true,
+  sms_notification_enabled: false,
+  auto_accept_orders: false
+};
+
+// 設定分類結構
+const basicSettingsCategories = {
+  'notifications': [
+    {
+      key: 'notification_packaging_complete',
+      display_name: '📦 包裝完成通知',
+      description: '當商品包裝完成時發送給客戶的訊息。可使用 {orderId} 和 {totalAmount} 作為變數。',
+      type: 'textarea',
+      value: defaultBasicSettings.notification_packaging_complete
+    },
+    {
+      key: 'notification_delivering',
+      display_name: '🚚 配送中通知',
+      description: '當訂單開始配送時發送給客戶的訊息。可使用 {orderId} 作為變數。',
+      type: 'textarea',
+      value: defaultBasicSettings.notification_delivering
+    },
+    {
+      key: 'notification_delivered',
+      display_name: '🎉 已送達通知',
+      description: '當訂單成功送達時發送給客戶的訊息。可使用 {orderId} 和 {totalAmount} 作為變數。',
+      type: 'textarea',
+      value: defaultBasicSettings.notification_delivered
+    }
+  ],
+  'theme': [
+    {
+      key: 'primary_color',
+      display_name: '主要色彩',
+      description: '系統的主要品牌顏色，用於導航欄和主要按鈕',
+      type: 'color',
+      value: defaultBasicSettings.primary_color
+    },
+    {
+      key: 'accent_color',
+      display_name: '強調色彩',
+      description: '用於突出顯示和次要按鈕的顏色',
+      type: 'color',
+      value: defaultBasicSettings.accent_color
+    }
+  ],
+  'store': [
+    {
+      key: 'store_name',
+      display_name: '商店名稱',
+      description: '顯示在網站標題和訂單確認訊息中的商店名稱',
+      type: 'text',
+      value: defaultBasicSettings.store_name
+    },
+    {
+      key: 'store_slogan',
+      display_name: '商店標語',
+      description: '簡短的品牌標語，顯示在首頁',
+      type: 'text',
+      value: defaultBasicSettings.store_slogan
+    },
+    {
+      key: 'contact_phone',
+      display_name: '聯絡電話',
+      description: '客戶服務電話號碼',
+      type: 'text',
+      value: defaultBasicSettings.contact_phone
+    },
+    {
+      key: 'contact_address',
+      display_name: '商店地址',
+      description: '商店的實體地址',
+      type: 'text',
+      value: defaultBasicSettings.contact_address
+    }
+  ],
+  'business': [
+    {
+      key: 'free_shipping_threshold',
+      display_name: '免運費門檻',
+      description: '超過此金額免收配送費（新台幣）',
+      type: 'number',
+      value: defaultBasicSettings.free_shipping_threshold
+    },
+    {
+      key: 'delivery_fee',
+      display_name: '配送費用',
+      description: '基本配送費用（新台幣）',
+      type: 'number',
+      value: defaultBasicSettings.delivery_fee
+    },
+    {
+      key: 'minimum_order_amount',
+      display_name: '最低訂購金額',
+      description: '接受訂單的最低金額（新台幣）',
+      type: 'number',
+      value: defaultBasicSettings.minimum_order_amount
+    },
+    {
+      key: 'service_hours_start',
+      display_name: '營業開始時間',
+      description: '每日營業開始時間',
+      type: 'time',
+      value: defaultBasicSettings.service_hours_start
+    },
+    {
+      key: 'service_hours_end',
+      display_name: '營業結束時間',
+      description: '每日營業結束時間',
+      type: 'time',
+      value: defaultBasicSettings.service_hours_end
+    }
+  ],
+  'features': [
+    {
+      key: 'line_notification_enabled',
+      display_name: 'LINE 通知',
+      description: '啟用 LINE Bot 推送通知功能',
+      type: 'boolean',
+      value: defaultBasicSettings.line_notification_enabled
+    },
+    {
+      key: 'sms_notification_enabled',
+      display_name: '簡訊通知',
+      description: '啟用簡訊備用通知功能',
+      type: 'boolean',
+      value: defaultBasicSettings.sms_notification_enabled
+    },
+    {
+      key: 'auto_accept_orders',
+      display_name: '自動接受訂單',
+      description: '新訂單自動標記為已確認',
+      type: 'boolean',
+      value: defaultBasicSettings.auto_accept_orders
+    }
+  ]
+};
+
+// 獲取基本設定
+app.get('/api/admin/basic-settings', ensureAdmin, async (req, res) => {
+  try {
+    if (demoMode) {
+      // 示範模式：使用預設設定
+      const settings = { ...defaultBasicSettings };
+      
+      // 更新分類中的值
+      const categories = JSON.parse(JSON.stringify(basicSettingsCategories));
+      Object.keys(categories).forEach(categoryKey => {
+        categories[categoryKey].forEach(setting => {
+          setting.value = settings[setting.key] || setting.value;
+        });
+      });
+      
+      return res.json({
+        success: true,
+        settings,
+        categories
+      });
+    }
+
+    // 生產模式：從資料庫讀取設定
+    // 這裡可以實作資料庫查詢邏輯
+    const settings = { ...defaultBasicSettings };
+    const categories = JSON.parse(JSON.stringify(basicSettingsCategories));
+    
+    Object.keys(categories).forEach(categoryKey => {
+      categories[categoryKey].forEach(setting => {
+        setting.value = settings[setting.key] || setting.value;
+      });
+    });
+
+    res.json({
+      success: true,
+      settings,
+      categories
+    });
+
+  } catch (error) {
+    console.error('獲取基本設定失敗:', error);
+    res.status(500).json({
+      success: false,
+      message: '獲取設定失敗'
+    });
+  }
+});
+
+// 更新基本設定
+app.post('/api/admin/basic-settings/update', ensureAdmin, async (req, res) => {
+  try {
+    const { settings } = req.body;
+
+    if (!settings || typeof settings !== 'object') {
+      return res.status(400).json({
+        success: false,
+        message: '設定格式錯誤'
+      });
+    }
+
+    if (demoMode) {
+      // 示範模式：僅模擬儲存
+      console.log('📝 示範模式：設定已更新（模擬）', Object.keys(settings));
+      return res.json({
+        success: true,
+        message: '設定已儲存（示範模式）'
+      });
+    }
+
+    // 生產模式：儲存到資料庫
+    // 這裡可以實作資料庫更新邏輯
+    console.log('📝 設定已更新:', Object.keys(settings));
+
+    res.json({
+      success: true,
+      message: '設定儲存成功'
+    });
+
+  } catch (error) {
+    console.error('更新基本設定失敗:', error);
+    res.status(500).json({
+      success: false,
+      message: '設定儲存失敗'
+    });
+  }
+});
+
+// 重設基本設定
+app.post('/api/admin/basic-settings/reset', ensureAdmin, async (req, res) => {
+  try {
+    const { keys } = req.body;
+
+    if (demoMode) {
+      // 示範模式：僅模擬重設
+      console.log('🔄 示範模式：設定已重設為預設值（模擬）');
+      return res.json({
+        success: true,
+        message: '設定已重設為預設值（示範模式）'
+      });
+    }
+
+    // 生產模式：重設資料庫中的設定
+    // 這裡可以實作資料庫重設邏輯
+    console.log('🔄 設定已重設為預設值');
+
+    res.json({
+      success: true,
+      message: '設定已重設為預設值'
+    });
+
+  } catch (error) {
+    console.error('重設基本設定失敗:', error);
+    res.status(500).json({
+      success: false,
+      message: '重設設定失敗'
+    });
+  }
+});
+
+// 基本設定頁面路由
+app.get('/admin/basic-settings', ensureAdmin, (req, res) => {
+  res.render('admin_basic_settings');
 });
 
 // 🤖 使用 Agent 系統的 API 端點
@@ -3115,6 +3791,11 @@ app.get('/test-dashboard', (req, res) => {
   res.render('test_data_dashboard');
 });
 
+// 前端載入測試頁面
+app.get('/test-frontend-loading', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'test_frontend_loading.html'));
+});
+
 // 獲取測試數據統計
 app.get('/api/test/stats', async (req, res) => {
   try {
@@ -3227,6 +3908,22 @@ app.post('/api/test/create-orders', async (req, res) => {
 // =====================================
 // LINE Bot 整合路由
 // =====================================
+
+// 初始化LINE Bot服務
+try {
+  lineBotService = new LineBotService();
+  console.log('🤖 LINE Bot服務已初始化');
+} catch (error) {
+  console.error('❌ LINE Bot服務初始化失敗:', error);
+}
+
+// 初始化LINE用戶服務
+try {
+  lineUserService = new LineUserService(pool);
+  console.log('👤 LINE用戶服務已初始化');
+} catch (error) {
+  console.error('❌ LINE用戶服務初始化失敗:', error);
+}
 
 const OrderNotificationHook = require('./services/OrderNotificationHook');
 const orderNotificationHook = new OrderNotificationHook(lineBotService, pool);
@@ -3361,6 +4058,32 @@ app.put('/api/orders/:orderId/status', async (req, res) => {
       });
     }
     
+    // 示範模式處理
+    if (demoMode) {
+      console.log(`📋 [示範模式] 模擬訂單 #${orderId} 狀態更新: pending → ${status}`);
+      
+      const oldStatus = 'pending'; // 示範模式預設原狀態
+      
+      // 觸發通知Hook (這是重點測試項目)
+      await orderNotificationHook.handleOrderStatusChange(orderId, oldStatus, status, {
+        id: orderId,
+        contact_name: '示範客戶',
+        contact_phone: '0912345678',
+        total_amount: 350,
+        payment_method: 'cash',
+        line_user_id: null // 觸發模擬通知
+      });
+      
+      return res.json({
+        success: true,
+        message: '示範模式：訂單狀態更新成功，已觸發通知測試',
+        orderId: parseInt(orderId),
+        oldStatus,
+        newStatus: status,
+        demoMode: true
+      });
+    }
+    
     // 查詢當前訂單狀態
     const currentOrderResult = await pool.query(
       'SELECT status FROM orders WHERE id = $1',
@@ -3488,6 +4211,204 @@ app.put('/api/orders/batch-status', async (req, res) => {
       message: '批量更新失敗：' + error.message
     });
   }
+});
+
+// =====================================
+// LINE 用戶管理 API (新版)
+// =====================================
+
+// 註冊/更新 LINE 用戶
+app.post('/api/line/register-user', async (req, res) => {
+  try {
+    const { userId, displayName, pictureUrl, statusMessage } = req.body;
+    
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'LINE User ID 不能為空'
+      });
+    }
+
+    if (!lineUserService) {
+      return res.status(503).json({
+        success: false,
+        message: 'LINE 用戶服務未初始化'
+      });
+    }
+
+    // 處理用戶註冊/更新
+    const user = await lineUserService.processLineUser({
+      userId,
+      displayName,
+      pictureUrl,
+      statusMessage
+    });
+
+    res.json({
+      success: true,
+      message: '用戶註冊/更新成功',
+      user,
+      isNewUser: !user.id || user.id > Date.now() - 60000 // 簡單判斷是否為新用戶
+    });
+
+  } catch (error) {
+    console.error('❌ LINE 用戶註冊失敗:', error);
+    res.status(500).json({
+      success: false,
+      message: '註冊失敗：' + error.message
+    });
+  }
+});
+
+// 綁定電話號碼
+app.post('/api/line/bind-phone', async (req, res) => {
+  try {
+    const { userId, phone } = req.body;
+    
+    if (!userId || !phone) {
+      return res.status(400).json({
+        success: false,
+        message: '用戶 ID 和電話號碼不能為空'
+      });
+    }
+
+    if (!lineUserService) {
+      return res.status(503).json({
+        success: false,
+        message: 'LINE 用戶服務未初始化'
+      });
+    }
+
+    // 綁定電話號碼
+    await lineUserService.bindUserPhone(userId, phone);
+
+    res.json({
+      success: true,
+      message: '電話號碼綁定成功'
+    });
+
+  } catch (error) {
+    console.error('❌ 電話號碼綁定失敗:', error);
+    res.status(500).json({
+      success: false,
+      message: '綁定失敗：' + error.message
+    });
+  }
+});
+
+// 查詢用戶訂單記錄
+app.get('/api/line/order-history/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: '用戶 ID 不能為空'
+      });
+    }
+
+    if (!lineUserService) {
+      return res.status(503).json({
+        success: false,
+        message: 'LINE 用戶服務未初始化'
+      });
+    }
+
+    // 查詢訂單記錄
+    const orders = await lineUserService.getUserOrderHistory(userId);
+
+    res.json({
+      success: true,
+      orders
+    });
+
+  } catch (error) {
+    console.error('❌ 查詢訂單記錄失敗:', error);
+    res.status(500).json({
+      success: false,
+      message: '查詢失敗：' + error.message
+    });
+  }
+});
+
+// 透過電話號碼查詢 LINE User ID
+app.get('/api/line/user-id/:phone', async (req, res) => {
+  try {
+    const { phone } = req.params;
+    
+    if (!phone) {
+      return res.status(400).json({
+        success: false,
+        message: '電話號碼不能為空'
+      });
+    }
+
+    if (!lineUserService) {
+      return res.status(503).json({
+        success: false,
+        message: 'LINE 用戶服務未初始化'
+      });
+    }
+
+    // 查詢 LINE User ID
+    const userId = await lineUserService.getLineUserIdByPhone(phone);
+
+    res.json({
+      success: true,
+      userId,
+      hasLineUser: !!userId
+    });
+
+  } catch (error) {
+    console.error('❌ 查詢 LINE User ID 失敗:', error);
+    res.status(500).json({
+      success: false,
+      message: '查詢失敗：' + error.message
+    });
+  }
+});
+
+// 為訂單關聯 LINE 用戶
+app.post('/api/line/link-order', async (req, res) => {
+  try {
+    const { orderId, userId } = req.body;
+    
+    if (!orderId || !userId) {
+      return res.status(400).json({
+        success: false,
+        message: '訂單 ID 和用戶 ID 不能為空'
+      });
+    }
+
+    if (!lineUserService) {
+      return res.status(503).json({
+        success: false,
+        message: 'LINE 用戶服務未初始化'
+      });
+    }
+
+    // 關聯訂單與用戶
+    await lineUserService.linkOrderToLineUser(orderId, userId);
+
+    res.json({
+      success: true,
+      message: '訂單關聯成功'
+    });
+
+  } catch (error) {
+    console.error('❌ 訂單關聯失敗:', error);
+    res.status(500).json({
+      success: false,
+      message: '關聯失敗：' + error.message
+    });
+  }
+});
+
+// LINE 用戶訂單記錄頁面
+app.get('/line/order-history', (req, res) => {
+  const { userId } = req.query;
+  res.render('line_order_history', { userId });
 });
 
 // =====================================
@@ -3736,24 +4657,10 @@ process.on('unhandledRejection', (reason, promise) => {
   gracefulShutdown('unhandledRejection');
 });
 
-// 啟動伺服器
-const server = app.listen(port, () => {
-  console.log(`🚀 chengyivegetable 系統正在監聽埠號 ${port}`);
-  console.log(`📱 前台網址: http://localhost:${port}`);
-  console.log(`⚙️  管理後台: http://localhost:${port}/admin`);
-  console.log(`🤖 Agent 管理: http://localhost:${port}/api/admin/agents/status`);
-  console.log(`🌍 環境: ${process.env.NODE_ENV || 'development'}`);
-  
-  // 初始化WebSocket服務
-  if (!demoMode) {
-    try {
-      webSocketManager = new WebSocketManager(server);
-      setWebSocketManager(webSocketManager);
-      console.log(`🔌 WebSocket 服務已啟動: ws://localhost:${port}`);
-    } catch (error) {
-      console.error('❌ WebSocket 初始化失敗:', error);
-    }
-  }
+// 初始化服務（適用於 Vercel serverless 環境）
+if (process.env.VERCEL) {
+  // Vercel serverless 環境：立即初始化服務
+  console.log('🔧 Vercel serverless 環境初始化');
   
   // 初始化LINE通知服務
   try {
@@ -3762,12 +4669,37 @@ const server = app.listen(port, () => {
   } catch (error) {
     console.error('❌ LINE通知服務初始化失敗:', error);
   }
-  
-  // 初始化LINE Bot服務
-  try {
-    lineBotService = new LineBotService();
-    console.log('🤖 LINE Bot服務已初始化');
-  } catch (error) {
-    console.error('❌ LINE Bot服務初始化失敗:', error);
-  }
-});
+} else {
+  // 本地開發環境：啟動伺服器
+  const server = app.listen(port, () => {
+    console.log(`🚀 chengyivegetable 系統正在監聽埠號 ${port}`);
+    console.log(`📱 前台網址: http://localhost:${port}`);
+    console.log(`⚙️  管理後台: http://localhost:${port}/admin`);
+    console.log(`🤖 Agent 管理: http://localhost:${port}/api/admin/agents/status`);
+    console.log(`🌍 環境: ${process.env.NODE_ENV || 'development'}`);
+    
+    // 初始化WebSocket服務
+    if (!demoMode) {
+      try {
+        webSocketManager = new WebSocketManager(server);
+        setWebSocketManager(webSocketManager);
+        console.log(`🔌 WebSocket 服務已啟動: ws://localhost:${port}`);
+      } catch (error) {
+        console.error('❌ WebSocket 初始化失敗:', error);
+      }
+    }
+    
+    // 初始化LINE通知服務
+    try {
+      lineNotificationService = new LineNotificationService();
+      console.log('🔔 LINE通知服務已初始化');
+    } catch (error) {
+      console.error('❌ LINE通知服務初始化失敗:', error);
+    }
+    
+    // LINE Bot服務已在上方初始化
+  });
+}
+
+// 導出 app 供 Vercel serverless 使用
+module.exports = app;

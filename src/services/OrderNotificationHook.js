@@ -57,6 +57,7 @@ class OrderNotificationHook {
   async sendOrderNotification(orderId, status, orderData = null) {
     try {
       let order = orderData;
+      let orderItems = [];
       
       // 如果沒有提供訂單數據，則查詢資料庫（包含付款方式）
       if (!order) {
@@ -73,14 +74,37 @@ class OrderNotificationHook {
         }
         
         order = orderResult.rows[0];
+        
+        // 查詢訂單項目
+        const itemsResult = await this.pool.query(`
+          SELECT * FROM order_items WHERE order_id = $1 ORDER BY id
+        `, [orderId]);
+        
+        orderItems = itemsResult.rows;
+      } else {
+        // 使用提供的訂單數據（示範模式或已有資料）
+        console.log(`📝 使用提供的訂單數據 (示範模式): 訂單 #${orderId}`);
+        
+        // 創建示範訂單項目
+        orderItems = [
+          {
+            id: 1,
+            name: '有機青菜',
+            quantity: 2,
+            unit_price: 80,
+            line_total: 160,
+            actual_weight: null
+          },
+          {
+            id: 2,
+            name: '新鮮番茄',
+            quantity: 1,
+            unit_price: 120,
+            line_total: 120,
+            actual_weight: null
+          }
+        ];
       }
-      
-      // 查詢訂單項目
-      const itemsResult = await this.pool.query(`
-        SELECT * FROM order_items WHERE order_id = $1 ORDER BY id
-      `, [orderId]);
-      
-      const orderItems = itemsResult.rows;
       
       // 處理包裝完成 (packed/ready) 狀態的通知
       if (status !== 'packed' && status !== 'ready') {

@@ -6,7 +6,16 @@
   "scripts": {
     "start": "node src/server.js",
     "test:connection": "node test_render_connection.js",
-    "test:local": "DATABASE_URL='postgresql://postgres:Chengyivegetable2025!@db.cywcuzgbuqmxjxwyrrsp.supabase.co:5432/postgres?sslmode=require' node test_render_connection.js"
+    "test:local": "DATABASE_URL='postgresql://postgres:Chengyivegetable2025!@db.cywcuzgbuqmxjxwyrrsp.supabase.co:5432/postgres?sslmode=require' node test_render_connection.js",
+    "deploy": "node smart-deploy.js",
+    "deploy-with-message": "node smart-deploy.js",
+    "push-and-deploy": "git push && vercel --prod",
+    "quick-deploy": "npm run deploy",
+    "smart-deploy": "node smart-deploy.js",
+    "claude-deploy": "node claude-hook-deploy.js",
+    "auto-deploy": "node safe-deploy.js",
+    "unsafe-deploy": "node claude-hook-deploy.js '請更新進度記錄並推送部署'",
+    "universal-deploy": "node universal-deploy.js"
   },
   "dependencies": {
     "@line/bot-sdk": "^10.1.2",
@@ -24,8 +33,12 @@
     "helmet": "^7.1.0",
     "multer": "^1.4.5-lts.1",
     "pg": "^8.11.1",
+    "sharp": "^0.34.3",
     "socket.io": "^4.8.1",
     "validator": "^13.11.0",
     "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "puppeteer": "^24.17.1"
   }
 }
