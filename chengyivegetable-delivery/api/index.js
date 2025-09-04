@@ -15,19 +15,37 @@ app.set('views', path.join(__dirname, '..', 'views'));
 // 健康檢查端點
 app.get('/health', (req, res) => {
   res.json({
-    status: 'ok',
+    status: 'OK',
     timestamp: new Date().toISOString(),
-    message: '簡化版本運行正常'
+    message: 'FIXED_VERSION_WORKING',
+    server: 'api/index.js'
+  });
+});
+
+// 測試端點
+app.get('/test', (req, res) => {
+  res.json({
+    message: 'SYSTEM_WORKING',
+    timestamp: new Date().toISOString()
   });
 });
 
 // 首頁
 app.get('/', (req, res) => {
-  res.json({
-    message: '誠憶鮮蔬外送系統',
-    status: '系統運行中',
-    timestamp: new Date().toISOString()
+  res.render('index_revolutionary', { 
+    products: [],
+    categories: []
   });
+});
+
+// 外送員登入頁面
+app.get('/driver/login', (req, res) => {
+  res.render('driver_login', { error: null });
+});
+
+// 外送員首頁
+app.get('/driver', (req, res) => {
+  res.redirect('/driver/login');
 });
 
 // 404 處理
