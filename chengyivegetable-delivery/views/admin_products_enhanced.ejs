@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商品管理 - 誠意鮮蔬管理後台</title>
+    <link rel="stylesheet" href="/css/admin-dashboard.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.css">
+    <style>
+        .products-container {
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .products-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: white;
+            border-radius: 12px;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .categories-section {
+            margin-bottom: 30px;
+        }
+        
+        .categories-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px 20px;
+            background: #34495e;
+            color: white;
+            border-radius: 8px;
+        }
+        
+        .categories-sortable {
+            min-height: 200px;
+        }
+        
+        .category-container {
+            margin-bottom: 25px;
+            border: 2px solid #ecf0f1;
+            border-radius: 12px;
+            overflow: hidden;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            cursor: move;
+            transition: all 0.3s ease;
+        }
+        
+        .category-container:hover {
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+        }
+        
+        .category-container.sortable-ghost {
+            opacity: 0.5;
+        }
+        
+        .category-container.sortable-chosen {
+            transform: rotate(5deg);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        .category-header {
+            padding: 15px 20px;
+            font-weight: bold;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+        }
+        
+        .category-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.1em;
+        }
+        
+        .category-stats {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.9em;
+        }
+        
+        .products-list {
+            min-height: 60px;
+            padding: 10px;
+        }
+        
+        .product-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px;
+            margin: 8px 0;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            cursor: move;
+            transition: all 0.3s ease;
+        }
+        
+        .product-item:hover {
+            background: #e3f2fd;
+            border-color: #2196f3;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .product-item.sortable-ghost {
+            opacity: 0.5;
+        }
+        
+        .product-item.sortable-chosen {
+            background: #fff3e0;
+            border-color: #ff9800;
+        }
+        
+        .product-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex: 1;
+        }
+        
+        .product-name {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 1.1em;
+        }
+        
+        .product-details {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .product-price {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            color: white;
+        }
+        
+        .product-price.fixed {
+            background: #27ae60;
+        }
+        
+        .product-price.priced {
+            background: #e67e22;
+        }
+        
+        .product-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 0.85em;
+            border-radius: 4px;
+        }
+        
+        .drag-handle {
+            color: #95a5a6;
+            cursor: move;
+            font-size: 1.2em;
+        }
+        
+        .drag-handle:hover {
+            color: #3498db;
+        }
+        
+        .empty-category {
+            text-align: center;
+            color: #95a5a6;
+            padding: 30px;
+            font-style: italic;
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            margin: 10px;
+        }
+        
+        .save-order-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 50px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: none;
+            z-index: 1000;
+        }
+        
+        .save-order-btn.show {
+            display: block;
+            animation: bounceIn 0.5s ease;
+        }
+        
+        @keyframes bounceIn {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        /* 編輯卡片樣式 */
+        .edit-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            z-index: 2000;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .edit-modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .edit-card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            transform: scale(0.9);
+            animation: scaleIn 0.3s ease forwards;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes scaleIn {
+            from { 
+                transform: scale(0.9);
+                opacity: 0;
+            }
+            to { 
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        
+        .edit-card h3 {
+            margin: 0 0 20px 0;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #34495e;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 30px;
+        }
+        
+        .btn-cancel {
+            background: #95a5a6;
+            color: white;
+        }
+        
+        .category-drag-handle {
+            color: #95a5a6;
+            cursor: move;
+            margin-right: 10px;
+        }
+        
+        .category-drag-handle:hover {
+            color: #3498db;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: bold;
+            z-index: 1001;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification.success {
+            background: #27ae60;
+        }
+        
+        .notification.error {
+            background: #e74c3c;
+        }
+
+        @media (max-width: 768px) {
+            .products-container {
+                padding: 10px;
+            }
+            
+            .products-header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .header-actions {
+                justify-content: center;
+            }
+            
+            .product-item {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }
+            
+            .product-details {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="products-container">
+        <!-- 頁面標題 -->
+        <div class="products-header">
+            <div>
+                <h1>🛍️ 商品管理</h1>
+                <p>拖拉商品進行排序，按類別整理您的商品</p>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-success" onclick="addCategory()">
+                    📂 新增類別
+                </button>
+                <a href="/admin/products/new" class="btn btn-primary">
+                    ➕ 新增商品
+                </a>
+            </div>
+        </div>
+
+        <!-- 類別管理區域 -->
+        <div class="categories-section">
+            <div class="categories-header">
+                <h2>📋 商品分類管理</h2>
+                <span id="totalStats"></span>
+            </div>
+
+            <!-- 動態生成的類別容器 -->
+            <div id="categoriesContainer" class="categories-sortable">
+                <!-- 這裡會由JavaScript動態填入類別 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 儲存排序按鈕 -->
+    <button id="saveOrderBtn" class="save-order-btn" onclick="saveOrder()">
+        💾 儲存排序
+    </button>
+
+    <!-- 通知訊息 -->
+    <div id="notification" class="notification"></div>
+
+    <!-- 商品編輯模態框 -->
+    <div id="editModal" class="edit-modal">
+        <div class="edit-card">
+            <h3 id="editTitle">✏️ 編輯商品</h3>
+            <form id="editForm">
+                <div class="form-group">
+                    <label for="editName">商品名稱</label>
+                    <input type="text" id="editName" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editCategory">商品類別</label>
+                    <select id="editCategory" class="form-control" required>
+                        <!-- 選項會由JavaScript動態填入 -->
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editPrice">價格設定</label>
+                    <input type="number" id="editPrice" class="form-control" step="0.01" placeholder="固定價格，留空表示時價">
+                </div>
+                
+                <div class="form-group">
+                    <label for="editUnit">單位</label>
+                    <input type="text" id="editUnit" class="form-control" placeholder="例如：顆、把、斤" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="editIsPriced"> 此商品為時價商品
+                    </label>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn btn-cancel" onclick="closeEditModal()">
+                        ❌ 取消
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        💾 儲存
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 包含Sortable.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    
+    <script>
+        // 從伺服器傳來的資料
+        const categories = <%- JSON.stringify(categories) %>;
+        const products = <%- JSON.stringify(products) %>;
+        
+        let hasChanges = false;
+        
+        // 初始化頁面
+        function initPage() {
+            renderCategories();
+            initSortable();
+            updateTotalStats();
+        }
+        
+        // 渲染類別
+        function renderCategories() {
+            const container = document.getElementById('categoriesContainer');
+            container.innerHTML = '';
+            
+            categories.forEach(category => {
+                const categoryProducts = products.filter(p => p.category_id === category.id);
+                const categoryHtml = createCategoryHtml(category, categoryProducts);
+                container.appendChild(categoryHtml);
+            });
+        }
+        
+        // 創建類別HTML元素
+        function createCategoryHtml(category, categoryProducts) {
+            const div = document.createElement('div');
+            div.className = 'category-container';
+            div.dataset.categoryId = category.id;
+            div.innerHTML = `
+                <div class="category-header" style="background-color: ${category.color}">
+                    <div class="category-title">
+                        <span class="category-drag-handle">⋮⋮</span>
+                        <span>${category.icon}</span>
+                        <span>${category.display_name}</span>
+                    </div>
+                    <div class="category-stats">
+                        ${categoryProducts.length} 個商品
+                    </div>
+                </div>
+                <div class="products-list" id="category-${category.id}" data-category-id="${category.id}">
+                    ${categoryProducts.length === 0 ? 
+                        '<div class="empty-category">🛒 拖拉商品到這裡進行分類</div>' : 
+                        categoryProducts.map(product => createProductHtml(product)).join('')}
+                </div>
+            `;
+            return div;
+        }
+        
+        // 創建商品HTML
+        function createProductHtml(product) {
+            const priceDisplay = product.price ? 
+                `<span class="product-price fixed">$${product.price}</span>` : 
+                `<span class="product-price priced">時價</span>`;
+                
+            return `
+                <div class="product-item" data-product-id="${product.id}">
+                    <div class="product-info">
+                        <span class="drag-handle">⋮⋮</span>
+                        <div class="product-name">${product.name}</div>
+                        <div class="product-details">
+                            ${priceDisplay}
+                            <span>單位: ${product.unit_hint}</span>
+                        </div>
+                    </div>
+                    <div class="product-actions">
+                        <button class="btn btn-primary btn-small" onclick="editProduct(${product.id})">
+                            ✏️ 編輯
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 初始化拖拉排序功能
+        function initSortable() {
+            // 類別排序
+            const categoriesContainer = document.getElementById('categoriesContainer');
+            new Sortable(categoriesContainer, {
+                animation: 200,
+                ghostClass: 'sortable-ghost',
+                chosenClass: 'sortable-chosen',
+                handle: '.category-drag-handle',
+                onEnd: function(evt) {
+                    hasChanges = true;
+                    showSaveButton();
+                    console.log('🔄 類別順序已更改');
+                }
+            });
+            
+            // 商品排序
+            document.querySelectorAll('.products-list').forEach(list => {
+                new Sortable(list, {
+                    group: 'products',
+                    animation: 150,
+                    ghostClass: 'sortable-ghost',
+                    chosenClass: 'sortable-chosen',
+                    dragClass: 'sortable-drag',
+                    handle: '.drag-handle',
+                    onMove: function(evt) {
+                        // 允許在不同類別間移動
+                        return true;
+                    },
+                    onEnd: function(evt) {
+                        hasChanges = true;
+                        showSaveButton();
+                        updateCategoryStats();
+                        
+                        // 更新空類別顯示
+                        updateEmptyStates();
+                    }
+                });
+            });
+        }
+        
+        // 更新類別統計
+        function updateCategoryStats() {
+            categories.forEach(category => {
+                const list = document.getElementById(`category-${category.id}`);
+                const count = list.querySelectorAll('.product-item').length;
+                const stats = list.parentElement.querySelector('.category-stats');
+                stats.textContent = `${count} 個商品`;
+            });
+            updateTotalStats();
+        }
+        
+        // 更新總統計
+        function updateTotalStats() {
+            const totalProducts = document.querySelectorAll('.product-item').length;
+            const totalStats = document.getElementById('totalStats');
+            totalStats.textContent = `總計 ${totalProducts} 個商品`;
+        }
+        
+        // 更新空類別狀態
+        function updateEmptyStates() {
+            document.querySelectorAll('.products-list').forEach(list => {
+                const items = list.querySelectorAll('.product-item');
+                const empty = list.querySelector('.empty-category');
+                
+                if (items.length === 0 && !empty) {
+                    list.innerHTML = '<div class="empty-category">🛒 拖拉商品到這裡進行分類</div>';
+                } else if (items.length > 0 && empty) {
+                    empty.remove();
+                }
+            });
+        }
+        
+        // 顯示儲存按鈕
+        function showSaveButton() {
+            const btn = document.getElementById('saveOrderBtn');
+            btn.classList.add('show');
+        }
+        
+        // 隱藏儲存按鈕
+        function hideSaveButton() {
+            const btn = document.getElementById('saveOrderBtn');
+            btn.classList.remove('show');
+        }
+        
+        // 儲存排序
+        async function saveOrder() {
+            const orderData = {
+                products: [],
+                categories: []
+            };
+            
+            // 收集類別排序
+            const categoryContainers = document.querySelectorAll('.category-container');
+            categoryContainers.forEach((container, index) => {
+                const categoryId = parseInt(container.dataset.categoryId);
+                orderData.categories.push({
+                    categoryId: categoryId,
+                    sortOrder: index + 1
+                });
+            });
+            
+            // 收集商品排序
+            document.querySelectorAll('.products-list').forEach(list => {
+                const categoryId = parseInt(list.dataset.categoryId);
+                const items = list.querySelectorAll('.product-item');
+                
+                items.forEach((item, index) => {
+                    orderData.products.push({
+                        productId: parseInt(item.dataset.productId),
+                        categoryId: categoryId,
+                        sortOrder: index + 1
+                    });
+                });
+            });
+            
+            try {
+                const response = await fetch('/api/admin/products/update-order', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(orderData)
+                });
+                
+                if (response.ok) {
+                    showNotification('排序已儲存成功！', 'success');
+                    hasChanges = false;
+                    hideSaveButton();
+                } else {
+                    throw new Error('儲存失敗');
+                }
+            } catch (error) {
+                showNotification('儲存排序時發生錯誤', 'error');
+            }
+        }
+        
+        // 顯示通知
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type} show`;
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+        
+        // 編輯商品 - 彈出式卡片
+        function editProduct(productId) {
+            const product = products.find(p => p.id === productId);
+            if (!product) {
+                showNotification('找不到指定商品', 'error');
+                return;
+            }
+            
+            // 填入表單資料
+            document.getElementById('editName').value = product.name;
+            document.getElementById('editPrice').value = product.price || '';
+            document.getElementById('editUnit').value = product.unit_hint || '';
+            document.getElementById('editIsPriced').checked = product.is_priced_item || false;
+            
+            // 填入類別選項
+            const categorySelect = document.getElementById('editCategory');
+            categorySelect.innerHTML = '';
+            categories.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat.id;
+                option.textContent = `${cat.icon} ${cat.display_name}`;
+                if (cat.id === product.category_id) {
+                    option.selected = true;
+                }
+                categorySelect.appendChild(option);
+            });
+            
+            // 設定表單提交處理
+            const form = document.getElementById('editForm');
+            form.onsubmit = function(e) {
+                e.preventDefault();
+                saveProductEdit(productId);
+            };
+            
+            // 顯示模態框
+            document.getElementById('editModal').classList.add('show');
+        }
+        
+        // 關閉編輯模態框
+        function closeEditModal() {
+            document.getElementById('editModal').classList.remove('show');
+        }
+        
+        // 儲存商品編輯
+        async function saveProductEdit(productId) {
+            const formData = {
+                name: document.getElementById('editName').value,
+                category_id: parseInt(document.getElementById('editCategory').value),
+                price: document.getElementById('editPrice').value || null,
+                unit_hint: document.getElementById('editUnit').value,
+                is_priced_item: document.getElementById('editIsPriced').checked
+            };
+            
+            try {
+                const response = await fetch(`/api/admin/products/${productId}/update`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                if (response.ok) {
+                    showNotification('商品更新成功！', 'success');
+                    closeEditModal();
+                    
+                    // 更新本地資料
+                    const product = products.find(p => p.id === productId);
+                    if (product) {
+                        Object.assign(product, formData);
+                        renderCategories();
+                        initSortable();
+                    }
+                } else {
+                    throw new Error('更新失敗');
+                }
+            } catch (error) {
+                showNotification('更新商品時發生錯誤', 'error');
+            }
+        }
+        
+        // 點擊背景關閉模態框
+        document.getElementById('editModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeEditModal();
+            }
+        });
+        
+        // 新增類別
+        function addCategory() {
+            const name = prompt('請輸入新類別名稱：');
+            if (name && name.trim()) {
+                // 這裡可以發送API請求新增類別
+                showNotification('類別新增功能開發中...', 'error');
+            }
+        }
+        
+        // 頁面離開確認
+        window.addEventListener('beforeunload', function(e) {
+            if (hasChanges) {
+                e.preventDefault();
+                e.returnValue = '您有未儲存的變更，確定要離開嗎？';
+            }
+        });
+        
+        // 頁面載入完成後初始化
+        document.addEventListener('DOMContentLoaded', initPage);
+    </script>
+</body>
+</html>

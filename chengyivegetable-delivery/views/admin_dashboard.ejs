@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>誠意鮮蔬 - 管理儀表板</title>
+    <link rel="stylesheet" href="/css/admin-dashboard.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Maps API will be loaded at the bottom with proper key -->
+</head>
+<body>
+    <!-- 側邊導航欄 -->
+    <nav class="sidebar">
+        <div class="logo">
+            <h2>🍃 誠意鮮蔬</h2>
+            <p>管理後台</p>
+        </div>
+        
+        <ul class="nav-menu">
+            <li class="nav-item active">
+                <a href="#dashboard" class="nav-link">
+                    <span class="icon">📊</span>
+                    <span>儀表板</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/admin/orders" class="nav-link">
+                    <span class="icon">📦</span>
+                    <span>訂單管理</span>
+                    <span class="badge">8</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/admin/products" class="nav-link">
+                    <span class="icon">🥬</span>
+                    <span>商品管理</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/admin/inventory" class="nav-link">
+                    <span class="icon">📋</span>
+                    <span>庫存管理</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/admin/delivery" class="nav-link">
+                    <span class="icon">🚛</span>
+                    <span>配送管理中心</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/admin/reports" class="nav-link">
+                    <span class="icon">📈</span>
+                    <span>統計報表</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/admin/basic-settings" class="nav-link">
+                    <span class="icon">🎨</span>
+                    <span>基本資料管理</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/admin/bank-settings" class="nav-link">
+                    <span class="icon">🏦</span>
+                    <span>銀行設定</span>
+                </a>
+            </li>
+            <!-- 員工管理和系統設定功能已移除 -->
+        </ul>
+        
+        <div class="user-info">
+            <div class="user-avatar">👤</div>
+            <div class="user-details">
+                <p class="user-name">黃士嘉</p>
+                <p class="user-role">系統管理員</p>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要內容區域 -->
+    <main class="main-content">
+        <!-- 頂部導航 -->
+        <header class="top-nav">
+            <button class="sidebar-toggle" onclick="toggleSidebar()">
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+            </button>
+            <div class="breadcrumb">
+                <span>首頁</span> > <span class="current">儀表板</span>
+            </div>
+            <div class="top-nav-actions">
+                <button class="refresh-btn" onclick="refreshData()">🔄 重新整理</button>
+                <div class="datetime">
+                    <span id="current-datetime"></span>
+                </div>
+            </div>
+        </header>
+
+        <!-- 儀表板內容 -->
+        <div class="dashboard-content" id="dashboard">
+            <!-- 關鍵指標卡片 -->
+            <div class="stats-grid">
+                <div class="stat-card revenue">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-content">
+                        <h3>今日營業額</h3>
+                        <p class="stat-value">$12,450</p>
+                        <span class="stat-change positive">+8.3%</span>
+                    </div>
+                </div>
+                
+                <div class="stat-card orders">
+                    <div class="stat-icon">📦</div>
+                    <div class="stat-content">
+                        <h3>今日訂單</h3>
+                        <p class="stat-value">47筆</p>
+                        <span class="stat-change positive">+12%</span>
+                    </div>
+                </div>
+                
+                <div class="stat-card customers">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-content">
+                        <h3>服務客戶</h3>
+                        <p class="stat-value">38人</p>
+                        <span class="stat-change neutral">+5%</span>
+                    </div>
+                </div>
+                
+                <div class="stat-card avgorder">
+                    <div class="stat-icon">🛒</div>
+                    <div class="stat-content">
+                        <h3>平均客單價</h3>
+                        <p class="stat-value">$265</p>
+                        <span class="stat-change negative">-2.1%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 圖表區域 -->
+            <div class="charts-grid">
+                <!-- 營收趨勢圖 -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>📈 營收趨勢 (本週)</h3>
+                        <div class="chart-controls">
+                            <select id="revenue-period">
+                                <option value="week">本週</option>
+                                <option value="month">本月</option>
+                                <option value="year">本年</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- 商品銷售排行 -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>🏆 熱銷商品 TOP 5</h3>
+                    </div>
+                    <div class="products-ranking">
+                        <div class="ranking-item">
+                            <span class="rank">1</span>
+                            <span class="product">🥬 高麗菜</span>
+                            <span class="sales">456顆</span>
+                            <span class="revenue">$36,480</span>
+                        </div>
+                        <div class="ranking-item">
+                            <span class="rank">2</span>
+                            <span class="product">🍇 葡萄</span>
+                            <span class="sales">234串</span>
+                            <span class="revenue">$29,250</span>
+                        </div>
+                        <div class="ranking-item">
+                            <span class="rank">3</span>
+                            <span class="product">🥬 大白菜</span>
+                            <span class="sales">189顆</span>
+                            <span class="revenue">$22,680</span>
+                        </div>
+                        <div class="ranking-item">
+                            <span class="rank">4</span>
+                            <span class="product">🍅 番茄</span>
+                            <span class="sales">567斤</span>
+                            <span class="revenue">$22,110</span>
+                        </div>
+                        <div class="ranking-item">
+                            <span class="rank">5</span>
+                            <span class="product">🥕 胡蘿蔔</span>
+                            <span class="sales">345包</span>
+                            <span class="revenue">$20,700</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 即時狀態區域 -->
+            <div class="status-grid">
+                <!-- 庫存警示 -->
+                <div class="status-card inventory-alerts">
+                    <h3>⚠️ 庫存警示</h3>
+                    <div class="alert-list">
+                        <div class="alert-item critical">
+                            <span class="icon">🔴</span>
+                            <span class="product">高麗菜</span>
+                            <span class="status">剩餘 3顆</span>
+                            <button class="action-btn">補貨</button>
+                        </div>
+                        <div class="alert-item warning">
+                            <span class="icon">🟡</span>
+                            <span class="product">番茄</span>
+                            <span class="status">2天內到期</span>
+                            <button class="action-btn">促銷</button>
+                        </div>
+                        <div class="alert-item normal">
+                            <span class="icon">🟢</span>
+                            <span class="product">葡萄</span>
+                            <span class="status">庫存充足</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 待處理事項 -->
+                <div class="status-card pending-tasks">
+                    <h3>📋 待處理事項</h3>
+                    <div class="task-list">
+                        <div class="task-item">
+                            <span class="icon">📦</span>
+                            <span class="task">待揀貨訂單</span>
+                            <span class="count">8筆</span>
+                            <button class="action-btn primary">處理</button>
+                        </div>
+                        <div class="task-item">
+                            <span class="icon">🚚</span>
+                            <span class="task">配送中訂單</span>
+                            <span class="count">12筆</span>
+                            <button class="action-btn">追蹤</button>
+                        </div>
+                        <div class="task-item">
+                            <span class="icon">💳</span>
+                            <span class="task">待收款訂單</span>
+                            <span class="count">3筆</span>
+                            <button class="action-btn">提醒</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 配送狀況 -->
+                <div class="status-card delivery-status">
+                    <h3>🗺️ 配送狀況</h3>
+                    <div class="delivery-map-mini" id="delivery-mini-map">
+                        <!-- 迷你地圖顯示 -->
+                        <div class="map-overlay">
+                            <p>🚛 5台車配送中</p>
+                            <p>⏰ 平均配送時間: 42分鐘</p>
+                            <p>📍 配送範圍: 三峽、北大、樹林</p>
+                            <button class="action-btn" onclick="openFullMap()">查看完整地圖</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 訂單管理頁面 -->
+        <div class="dashboard-content hidden" id="orders">
+            <div class="page-header">
+                <h2>📦 訂單管理</h2>
+                <div class="page-actions">
+                    <button class="btn primary" onclick="exportOrders()">📊 匯出報表</button>
+                    <button class="btn" onclick="refreshOrders()">🔄 重新整理</button>
+                </div>
+            </div>
+
+            <!-- 訂單篩選 -->
+            <div class="filter-bar">
+                <select id="order-status-filter">
+                    <option value="all">全部狀態</option>
+                    <option value="pending">待揀貨</option>
+                    <option value="picking">揀貨中</option>
+                    <option value="packed">包裝完成</option>
+                    <option value="delivering">配送中</option>
+                    <option value="completed">已完成</option>
+                </select>
+                <input type="date" id="order-date-filter" value="2024-08-15">
+                <input type="text" id="order-search" placeholder="搜尋訂單號或客戶名稱">
+                <button class="btn" onclick="filterOrders()">🔍 搜尋</button>
+            </div>
+
+            <!-- 訂單列表 -->
+            <div class="orders-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>訂單號</th>
+                            <th>客戶</th>
+                            <th>商品</th>
+                            <th>金額</th>
+                            <th>狀態</th>
+                            <th>配送時間</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="orders-tbody">
+                        <tr>
+                            <td colspan="7" style="text-align: center; padding: 20px;">
+                                載入訂單數據中...
+                                <br><br>
+                                <button onclick="loadOrders()" class="btn">🔄 手動載入訂單</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 配送地圖頁面 -->
+        <div class="dashboard-content hidden" id="delivery">
+            <div class="page-header">
+                <h2>🗺️ 配送管理中心</h2>
+                <div class="page-actions">
+                    <button class="btn primary" onclick="optimizeRoutes()">🎯 路線優化</button>
+                    <button class="btn" onclick="assignDelivery()">👨‍🚚 派送員工</button>
+                </div>
+            </div>
+
+            <div class="delivery-layout">
+                <!-- 地圖區域 -->
+                <div class="map-container">
+                    <div id="delivery-map"></div>
+                    <div class="map-controls">
+                        <button class="map-btn" onclick="centerMap()">🎯 重置視角</button>
+                        <button class="map-btn" onclick="toggleTraffic()">🚦 交通狀況</button>
+                        <button class="map-btn" onclick="toggleRoutes()">🛣️ 路線顯示</button>
+                    </div>
+                </div>
+
+                <!-- 配送員狀態 -->
+                <div class="delivery-sidebar">
+                    <h3>🚛 配送員狀態</h3>
+                    <div class="driver-list">
+                        <div class="driver-card active">
+                            <div class="driver-header">
+                                <span class="driver-name">👨‍🚚 李大明</span>
+                                <span class="vehicle">🏍️ ABC-1234</span>
+                            </div>
+                            <div class="driver-status">
+                                <p>📍 目前位置: 三峽國小附近</p>
+                                <p>🎯 配送中: 3筆訂單</p>
+                                <p>⏰ 預計完成: 15:30</p>
+                                <div class="driver-actions">
+                                    <button class="btn-small" onclick="callDriver('李大明')">📱 聯絡</button>
+                                    <button class="btn-small" onclick="trackDriver('李大明')">📍 追蹤</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="driver-card active">
+                            <div class="driver-header">
+                                <span class="driver-name">👨‍🚚 王小華</span>
+                                <span class="vehicle">🚗 DEF-5678</span>
+                            </div>
+                            <div class="driver-status">
+                                <p>📍 目前位置: 北大特區</p>
+                                <p>🎯 配送中: 2筆訂單</p>
+                                <p>⏰ 預計完成: 16:00</p>
+                                <div class="driver-actions">
+                                    <button class="btn-small" onclick="callDriver('王小華')">📱 聯絡</button>
+                                    <button class="btn-small" onclick="trackDriver('王小華')">📍 追蹤</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h3>📊 配送統計</h3>
+                    <div class="delivery-stats">
+                        <div class="stat-row">
+                            <span>✅ 今日完成</span>
+                            <span class="value">23筆</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>🚚 配送中</span>
+                            <span class="value">5筆</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>⏰ 準時率</span>
+                            <span class="value">94.2%</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>📏 平均時間</span>
+                            <span class="value">42分鐘</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="/js/admin-dashboard.js"></script>
+    
+    <!-- Google Maps API -->
+    <script>
+        let map;
+        let directionsService;
+        let directionsRenderer;
+        let storeMarker;
+        let driverMarkers = [];
+        
+        // 初始化 Google Maps
+        function initMap() {
+            // 三峽區誠意鮮蔬總店位置
+            const storeLocation = { lat: 24.9348, lng: 121.3722 };
+            
+            map = new google.maps.Map(document.getElementById('delivery-map'), {
+                zoom: 13,
+                center: storeLocation,
+                styles: [
+                    {
+                        "featureType": "poi",
+                        "elementType": "labels",
+                        "stylers": [{"visibility": "off"}]
+                    },
+                    {
+                        "featureType": "road",
+                        "elementType": "labels.icon",
+                        "stylers": [{"visibility": "off"}]
+                    }
+                ]
+            });
+            
+            // 設定路線服務
+            directionsService = new google.maps.DirectionsService();
+            directionsRenderer = new google.maps.DirectionsRenderer({
+                suppressMarkers: true,
+                polylineOptions: {
+                    strokeColor: '#2d5a3d',
+                    strokeWeight: 4,
+                    strokeOpacity: 0.8
+                }
+            });
+            directionsRenderer.setMap(map);
+            
+            // 添加總店標記
+            storeMarker = new google.maps.Marker({
+                position: storeLocation,
+                map: map,
+                title: '🍃 誠意鮮蔬總店',
+                icon: {
+                    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                        <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="20" cy="20" r="18" fill="#2d5a3d" stroke="#fff" stroke-width="2"/>
+                            <text x="20" y="28" text-anchor="middle" fill="white" font-size="20">🍃</text>
+                        </svg>
+                    `),
+                    scaledSize: new google.maps.Size(40, 40),
+                    anchor: new google.maps.Point(20, 20)
+                }
+            });
+            
+            // 添加店家資訊視窗
+            const storeInfoWindow = new google.maps.InfoWindow({
+                content: `
+                    <div style="padding: 10px; text-align: center;">
+                        <h3 style="margin: 0 0 10px 0; color: #2d5a3d;">🍃 誠意鮮蔬總店</h3>
+                        <p style="margin: 5px 0;"><strong>📍 地址:</strong> 新北市三峽區中山路123號</p>
+                        <p style="margin: 5px 0;"><strong>📞 電話:</strong> 02-2345-6789</p>
+                        <p style="margin: 5px 0;"><strong>⏰ 營業時間:</strong> 06:00-13:00</p>
+                    </div>
+                `
+            });
+            
+            storeMarker.addListener('click', () => {
+                storeInfoWindow.open(map, storeMarker);
+            });
+            
+            // 載入配送員位置
+            loadDriverLocations();
+            
+            console.log('✅ Google Maps 地圖初始化完成');
+        }
+        
+        // 載入配送員即時位置
+        function loadDriverLocations() {
+            // 模擬配送員位置數據
+            const drivers = [
+                {
+                    id: 1,
+                    name: '李大明',
+                    vehicle: 'ABC-1234',
+                    lat: 24.9450,
+                    lng: 121.3650,
+                    status: '配送中',
+                    orders: 3,
+                    phone: '0912-345-678'
+                },
+                {
+                    id: 2,
+                    name: '王小華',
+                    vehicle: 'DEF-5678', 
+                    lat: 24.9200,
+                    lng: 121.3900,
+                    status: '配送中',
+                    orders: 2,
+                    phone: '0923-456-789'
+                }
+            ];
+            
+            // 清除舊標記
+            driverMarkers.forEach(marker => marker.setMap(null));
+            driverMarkers = [];
+            
+            // 添加配送員標記
+            drivers.forEach(driver => {
+                const driverMarker = new google.maps.Marker({
+                    position: { lat: driver.lat, lng: driver.lng },
+                    map: map,
+                    title: `配送員：${driver.name}`,
+                    icon: {
+                        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                            <svg width="35" height="35" viewBox="0 0 35 35" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="17.5" cy="17.5" r="15" fill="#3498db" stroke="#fff" stroke-width="2"/>
+                                <text x="17.5" y="25" text-anchor="middle" fill="white" font-size="16">🚛</text>
+                            </svg>
+                        `),
+                        scaledSize: new google.maps.Size(35, 35),
+                        anchor: new google.maps.Point(17.5, 17.5)
+                    }
+                });
+                
+                // 配送員資訊視窗
+                const driverInfoWindow = new google.maps.InfoWindow({
+                    content: `
+                        <div style="padding: 10px; min-width: 200px;">
+                            <h4 style="margin: 0 0 10px 0; color: #3498db;">🚛 ${driver.name}</h4>
+                            <p style="margin: 5px 0;"><strong>🚗 車牌:</strong> ${driver.vehicle}</p>
+                            <p style="margin: 5px 0;"><strong>📱 電話:</strong> ${driver.phone}</p>
+                            <p style="margin: 5px 0;"><strong>📦 配送中:</strong> ${driver.orders} 筆訂單</p>
+                            <p style="margin: 5px 0;"><strong>📍 狀態:</strong> <span style="color: #27ae60;">${driver.status}</span></p>
+                            <div style="margin-top: 10px; text-align: center;">
+                                <button onclick="callDriver('${driver.phone}')" style="background: #27ae60; color: white; border: none; padding: 5px 15px; border-radius: 4px; margin-right: 5px; cursor: pointer;">📞 通話</button>
+                                <button onclick="trackDriver(${driver.id})" style="background: #3498db; color: white; border: none; padding: 5px 15px; border-radius: 4px; cursor: pointer;">📍 追蹤</button>
+                            </div>
+                        </div>
+                    `
+                });
+                
+                driverMarker.addListener('click', () => {
+                    driverInfoWindow.open(map, driverMarker);
+                });
+                
+                driverMarkers.push(driverMarker);
+            });
+        }
+        
+        // 地圖控制功能
+        function centerMap() {
+            map.setCenter({ lat: 24.9348, lng: 121.3722 });
+            map.setZoom(13);
+            showNotification('🎯 地圖視角已重置', 'info');
+        }
+        
+        let trafficLayer = null;
+        function toggleTraffic() {
+            if (trafficLayer) {
+                trafficLayer.setMap(null);
+                trafficLayer = null;
+                showNotification('🚦 交通狀況已隱藏', 'info');
+            } else {
+                trafficLayer = new google.maps.TrafficLayer();
+                trafficLayer.setMap(map);
+                showNotification('🚦 交通狀況已顯示', 'success');
+            }
+        }
+        
+        function toggleRoutes() {
+            // 示範路線規劃
+            const start = { lat: 24.9348, lng: 121.3722 }; // 總店
+            const end = { lat: 24.9450, lng: 121.3650 }; // 配送點
+            
+            directionsService.route({
+                origin: start,
+                destination: end,
+                travelMode: google.maps.TravelMode.DRIVING,
+                avoidTolls: true
+            }, (response, status) => {
+                if (status === 'OK') {
+                    directionsRenderer.setDirections(response);
+                    showNotification('🛣️ 配送路線已顯示', 'success');
+                } else {
+                    showNotification('❌ 路線規劃失敗', 'error');
+                }
+            });
+        }
+        
+        // 配送員功能
+        function callDriver(phone) {
+            window.open(`tel:${phone}`);
+        }
+        
+        function trackDriver(driverId) {
+            showNotification(`📍 正在追蹤外送員 #${driverId}`, 'info');
+            // 這裡可以加入更詳細的追蹤功能
+        }
+        
+        // 通知系統
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <div class="notification-content">
+                    <span class="notification-icon">
+                        ${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}
+                    </span>
+                    <span class="notification-message">${message}</span>
+                </div>
+            `;
+            
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? '#27ae60' : type === 'error' ? '#e74c3c' : '#3498db'};
+                color: white;
+                padding: 15px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+                z-index: 10000;
+                transform: translateX(100%);
+                transition: transform 0.3s ease;
+                max-width: 350px;
+                font-size: 14px;
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+            }, 100);
+            
+            setTimeout(() => {
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+        
+        // 每30秒更新配送員位置
+        setInterval(loadDriverLocations, 30000);
+    </script>
+    
+    <!-- 載入 Google Maps API -->
+    <script async defer 
+            src="https://maps.googleapis.com/maps/api/js?key=<%= googleMapsApiKey %>&libraries=geometry&callback=initMap">
+    </script>
+    
+    <script>
+        // 初始化頁面
+        document.addEventListener('DOMContentLoaded', function() {
+            initDashboard();
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+            loadSidebarState();
+        });
+
+
+        // 側邊欄開關功能
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const mainContent = document.querySelector('.main-content');
+            
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+            
+            // 儲存狀態到 localStorage
+            const isCollapsed = sidebar.classList.contains('collapsed');
+            localStorage.setItem('sidebarCollapsed', isCollapsed);
+        }
+        
+        // 載入側邊欄狀態
+        function loadSidebarState() {
+            const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            if (isCollapsed) {
+                document.querySelector('.sidebar').classList.add('collapsed');
+                document.querySelector('.main-content').classList.add('expanded');
+            }
+        }
+
+        // 更新時間顯示
+        function updateDateTime() {
+            const now = new Date();
+            const dateTimeString = now.toLocaleString('zh-TW', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            document.getElementById('current-datetime').textContent = dateTimeString;
+        }
+
+        // 導航切換
+        function showPage(pageId) {
+            // 隱藏所有頁面
+            document.querySelectorAll('.dashboard-content').forEach(page => {
+                page.classList.add('hidden');
+            });
+            // 顯示選中頁面
+            document.getElementById(pageId).classList.remove('hidden');
+            
+            // 更新導航狀態
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            document.querySelector(`[href="#${pageId}"]`).parentElement.classList.add('active');
+        }
+
+        // 綁定導航點擊事件
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                const href = this.getAttribute('href');
+                
+                // 只攔截錨點連結（以#開頭），讓真實路徑正常跳轉
+                if (href.startsWith('#')) {
+                    e.preventDefault();
+                    const pageId = href.substring(1);
+                    showPage(pageId);
+                }
+                // 其他連結（如 /admin/products）讓瀏覽器自然跳轉
+            });
+        });
+    </script>
+    
+    <!-- 全域快速導航系統 -->
+    <script src="/js/global-quick-nav.js"></script>
+    <link rel="stylesheet" href="/css/global-quick-nav.css">
+</body>
+</html>

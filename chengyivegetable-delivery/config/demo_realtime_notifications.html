@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>即時通知系統 - 功能演示</title>
+    <style>
+        body {
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+        }
+        
+        .header {
+            text-align: center;
+            color: #2e7d32;
+            margin-bottom: 30px;
+        }
+        
+        .demo-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .demo-section {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        
+        .demo-section h3 {
+            margin-top: 0;
+            color: #1976d2;
+            border-bottom: 2px solid #e3f2fd;
+            padding-bottom: 10px;
+        }
+        
+        .status-display {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 4px solid #4caf50;
+        }
+        
+        .button {
+            background: #2e7d32;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        
+        .button:hover {
+            background: #1b5e20;
+        }
+        
+        .button.secondary {
+            background: #1976d2;
+        }
+        
+        .button.secondary:hover {
+            background: #1565c0;
+        }
+        
+        .button.danger {
+            background: #d32f2f;
+        }
+        
+        .button.danger:hover {
+            background: #c62828;
+        }
+        
+        .log-area {
+            background: #263238;
+            color: #4caf50;
+            font-family: 'Courier New', monospace;
+            padding: 15px;
+            border-radius: 5px;
+            height: 200px;
+            overflow-y: auto;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        .input-group {
+            margin: 10px 0;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        
+        .connection-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .connected {
+            background: #4caf50;
+        }
+        
+        .disconnected {
+            background: #f44336;
+        }
+        
+        .notification-demo {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            max-width: 300px;
+            z-index: 1000;
+        }
+        
+        .demo-notification {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+        
+        .full-width {
+            grid-column: 1 / -1;
+        }
+        
+        @media (max-width: 768px) {
+            .demo-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎉 即時訂單狀態推播系統</h1>
+            <p>承億蔬菜外送平台 - 功能演示</p>
+            <div id="connectionStatus">
+                <span class="connection-indicator disconnected"></span>
+                <span>正在連接...</span>
+            </div>
+        </div>
+
+        <div class="demo-grid">
+            <!-- SSE 連接測試 -->
+            <div class="demo-section">
+                <h3>📡 即時連接測試</h3>
+                <div class="input-group">
+                    <label>用戶類型:</label>
+                    <select id="userType">
+                        <option value="customer">客戶</option>
+                        <option value="admin">管理員</option>
+                        <option value="driver">外送員</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>用戶ID:</label>
+                    <input type="text" id="userId" value="demo_user" placeholder="輸入用戶ID">
+                </div>
+                <button class="button" onclick="connectSSE()">建立連接</button>
+                <button class="button secondary" onclick="disconnectSSE()">斷開連接</button>
+                <button class="button danger" onclick="clearLog()">清空日誌</button>
+                
+                <div class="status-display">
+                    <strong>連接狀態:</strong>
+                    <div id="connectionInfo">未連接</div>
+                </div>
+            </div>
+
+            <!-- 訂單狀態測試 -->
+            <div class="demo-section">
+                <h3>📋 訂單狀態更新</h3>
+                <div class="input-group">
+                    <label>訂單ID:</label>
+                    <input type="number" id="orderId" value="1" placeholder="輸入訂單ID">
+                </div>
+                <div class="input-group">
+                    <label>新狀態:</label>
+                    <select id="orderStatus">
+                        <option value="placed">訂單成立</option>
+                        <option value="confirmed">訂單確認</option>
+                        <option value="preparing">商品準備中</option>
+                        <option value="ready">商品準備完成</option>
+                        <option value="assigned">已分配外送員</option>
+                        <option value="picked_up">外送員已取貨</option>
+                        <option value="delivering">配送中</option>
+                        <option value="delivered">已送達</option>
+                        <option value="completed">訂單完成</option>
+                    </select>
+                </div>
+                <button class="button" onclick="subscribeToOrder()">訂閱訂單</button>
+                <button class="button secondary" onclick="updateOrderStatus()">更新狀態</button>
+                
+                <div class="status-display">
+                    <strong>最新訂單狀態:</strong>
+                    <div id="latestOrderStatus">尚未訂閱</div>
+                </div>
+            </div>
+
+            <!-- 外送員位置測試 -->
+            <div class="demo-section">
+                <h3>🚚 外送員位置追蹤</h3>
+                <div class="input-group">
+                    <label>外送員ID:</label>
+                    <input type="number" id="driverId" value="1" placeholder="輸入外送員ID">
+                </div>
+                <div class="input-group">
+                    <label>緯度:</label>
+                    <input type="number" id="driverLat" value="24.1477" step="0.0001" placeholder="緯度">
+                </div>
+                <div class="input-group">
+                    <label>經度:</label>
+                    <input type="number" id="driverLng" value="120.6736" step="0.0001" placeholder="經度">
+                </div>
+                <button class="button" onclick="subscribeToDriver()">訂閱外送員</button>
+                <button class="button secondary" onclick="updateDriverLocation()">更新位置</button>
+                <button class="button secondary" onclick="simulateMovement()">模擬移動</button>
+                
+                <div class="status-display">
+                    <strong>最新位置:</strong>
+                    <div id="latestDriverLocation">尚未訂閱</div>
+                </div>
+            </div>
+
+            <!-- 系統通知測試 -->
+            <div class="demo-section">
+                <h3>🔔 系統通知測試</h3>
+                <div class="input-group">
+                    <label>通知內容:</label>
+                    <input type="text" id="notificationMessage" value="測試系統通知" placeholder="輸入通知內容">
+                </div>
+                <div class="input-group">
+                    <label>通知級別:</label>
+                    <select id="notificationLevel">
+                        <option value="info">資訊</option>
+                        <option value="warning">警告</option>
+                        <option value="error">錯誤</option>
+                    </select>
+                </div>
+                <button class="button" onclick="sendTestNotification()">發送通知</button>
+                <button class="button secondary" onclick="requestNotificationPermission()">請求權限</button>
+                
+                <div class="status-display">
+                    <strong>通知權限:</strong>
+                    <div id="notificationPermission">檢查中...</div>
+                </div>
+            </div>
+
+            <!-- 統計資訊 -->
+            <div class="demo-section full-width">
+                <h3>📊 系統統計</h3>
+                <button class="button" onclick="getConnectionStats()">獲取統計</button>
+                <button class="button secondary" onclick="getDriverStats()">外送員統計</button>
+                
+                <div class="status-display">
+                    <strong>統計資訊:</strong>
+                    <div id="systemStats">點擊按鈕獲取統計資訊</div>
+                </div>
+            </div>
+
+            <!-- 日誌區域 -->
+            <div class="demo-section full-width">
+                <h3>📝 即時日誌</h3>
+                <div id="logArea" class="log-area">
+                    等待連接建立...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 通知演示區域 -->
+    <div id="notificationDemo" class="notification-demo"></div>
+
+    <script>
+        // 全域變數
+        let eventSource = null;
+        let connectionId = null;
+        let isConnected = false;
+        let simulationInterval = null;
+
+        // API 基礎 URL
+        const API_BASE = '/api/notifications';
+        const BASE_URL = window.location.origin;
+
+        // 日誌函數
+        function log(message, type = 'info') {
+            const logArea = document.getElementById('logArea');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}\n`;
+            logArea.innerHTML += logEntry;
+            logArea.scrollTop = logArea.scrollHeight;
+            console.log(`[${type.toUpperCase()}]`, message);
+        }
+
+        // 清空日誌
+        function clearLog() {
+            document.getElementById('logArea').innerHTML = '';
+        }
+
+        // 更新連接狀態
+        function updateConnectionStatus(connected, info = '') {
+            isConnected = connected;
+            const statusEl = document.getElementById('connectionStatus');
+            const infoEl = document.getElementById('connectionInfo');
+            const indicator = statusEl.querySelector('.connection-indicator');
+            
+            if (connected) {
+                indicator.className = 'connection-indicator connected';
+                statusEl.querySelector('span:last-child').textContent = '已連接';
+                infoEl.textContent = info || '連接正常';
+                log('✅ SSE 連接已建立', 'success');
+            } else {
+                indicator.className = 'connection-indicator disconnected';
+                statusEl.querySelector('span:last-child').textContent = '未連接';
+                infoEl.textContent = info || '連接中斷';
+                log('❌ SSE 連接中斷', 'error');
+            }
+        }
+
+        // 建立 SSE 連接
+        function connectSSE() {
+            if (eventSource) {
+                eventSource.close();
+            }
+
+            const userId = document.getElementById('userId').value || 'demo_user';
+            const userType = document.getElementById('userType').value || 'customer';
+            
+            const url = `${API_BASE}/stream?userId=${encodeURIComponent(userId)}&userType=${encodeURIComponent(userType)}`;
+            
+            log(`🔌 正在建立 SSE 連接: ${url}`, 'info');
+            
+            eventSource = new EventSource(url);
+            
+            eventSource.onopen = function(event) {
+                updateConnectionStatus(true, '連接已建立');
+            };
+            
+            eventSource.addEventListener('connected', function(event) {
+                const data = JSON.parse(event.data);
+                connectionId = data.connectionId;
+                updateConnectionStatus(true, `連接ID: ${connectionId}`);
+                log(`✅ 收到連接確認: ${connectionId}`, 'success');
+            });
+            
+            eventSource.addEventListener('orderUpdate', function(event) {
+                const data = JSON.parse(event.data);
+                log(`📋 訂單更新: 訂單 ${data.orderId} 狀態變更為 ${data.newStatus}`, 'info');
+                document.getElementById('latestOrderStatus').innerHTML = 
+                    `訂單 ${data.orderId}: ${data.statusMessage || data.newStatus}<br>時間: ${new Date(data.timestamp).toLocaleString()}`;
+                showNotification(data.title, data.message, data.icon);
+            });
+            
+            eventSource.addEventListener('driverLocation', function(event) {
+                const data = JSON.parse(event.data);
+                log(`🚚 外送員位置更新: 外送員 ${data.driverId} 位置 (${data.lat}, ${data.lng})`, 'info');
+                document.getElementById('latestDriverLocation').innerHTML = 
+                    `外送員 ${data.driverId}: (${data.lat}, ${data.lng})<br>時間: ${new Date(data.timestamp).toLocaleString()}`;
+            });
+            
+            eventSource.addEventListener('systemNotification', function(event) {
+                const data = JSON.parse(event.data);
+                log(`🔔 系統通知: ${data.message} [${data.level}]`, 'info');
+                showNotification('系統通知', data.message, '🔔');
+            });
+            
+            eventSource.addEventListener('heartbeat', function(event) {
+                const data = JSON.parse(event.data);
+                log(`💓 收到心跳包: ${data.timestamp}`, 'debug');
+            });
+            
+            eventSource.onerror = function(event) {
+                updateConnectionStatus(false, '連接錯誤');
+                log('❌ SSE 連接錯誤', 'error');
+            };
+        }
+
+        // 斷開 SSE 連接
+        function disconnectSSE() {
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+                connectionId = null;
+                updateConnectionStatus(false, '手動斷開');
+                log('🔌 SSE 連接已斷開', 'info');
+            }
+        }
+
+        // 訂閱訂單更新
+        async function subscribeToOrder() {
+            if (!connectionId) {
+                alert('請先建立 SSE 連接');
+                return;
+            }
+            
+            const orderId = document.getElementById('orderId').value;
+            if (!orderId) {
+                alert('請輸入訂單ID');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/subscribe/order`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        connectionId: connectionId,
+                        orderId: parseInt(orderId)
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    log(`🔔 已訂閱訂單 ${orderId} 的更新通知`, 'success');
+                } else {
+                    log(`❌ 訂閱失敗: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ 訂閱請求失敗: ${error.message}`, 'error');
+            }
+        }
+
+        // 更新訂單狀態
+        async function updateOrderStatus() {
+            const orderId = document.getElementById('orderId').value;
+            const status = document.getElementById('orderStatus').value;
+            
+            if (!orderId || !status) {
+                alert('請輸入訂單ID和選擇狀態');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/order/${orderId}/status`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        status: status,
+                        changedBy: 'demo_user',
+                        notes: '演示更新'
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    log(`📋 訂單 ${orderId} 狀態已更新為 ${status}`, 'success');
+                } else {
+                    log(`❌ 更新失敗: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ 更新請求失敗: ${error.message}`, 'error');
+            }
+        }
+
+        // 訂閱外送員位置
+        async function subscribeToDriver() {
+            if (!connectionId) {
+                alert('請先建立 SSE 連接');
+                return;
+            }
+            
+            const driverId = document.getElementById('driverId').value;
+            if (!driverId) {
+                alert('請輸入外送員ID');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/subscribe/driver`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        connectionId: connectionId,
+                        driverId: parseInt(driverId)
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    log(`🚚 已訂閱外送員 ${driverId} 的位置更新`, 'success');
+                } else {
+                    log(`❌ 訂閱失敗: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ 訂閱請求失敗: ${error.message}`, 'error');
+            }
+        }
+
+        // 更新外送員位置
+        async function updateDriverLocation() {
+            const driverId = document.getElementById('driverId').value;
+            const lat = parseFloat(document.getElementById('driverLat').value);
+            const lng = parseFloat(document.getElementById('driverLng').value);
+            
+            if (!driverId || isNaN(lat) || isNaN(lng)) {
+                alert('請輸入有效的外送員ID和座標');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/driver/${driverId}/location`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        lat: lat,
+                        lng: lng,
+                        accuracy: 10,
+                        speed: Math.random() * 30 + 10 // 隨機速度
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    log(`📍 外送員 ${driverId} 位置已更新: (${lat}, ${lng})`, 'success');
+                } else {
+                    log(`❌ 位置更新失敗: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ 位置更新請求失敗: ${error.message}`, 'error');
+            }
+        }
+
+        // 模擬移動
+        function simulateMovement() {
+            const driverId = document.getElementById('driverId').value;
+            if (!driverId) {
+                alert('請輸入外送員ID');
+                return;
+            }
+            
+            if (simulationInterval) {
+                clearInterval(simulationInterval);
+                simulationInterval = null;
+                log('⏹️ 停止模擬移動', 'info');
+                return;
+            }
+            
+            let baseLat = parseFloat(document.getElementById('driverLat').value);
+            let baseLng = parseFloat(document.getElementById('driverLng').value);
+            
+            log('🎬 開始模擬外送員移動', 'info');
+            
+            simulationInterval = setInterval(async () => {
+                // 模擬移動 (小範圍隨機變化)
+                const lat = baseLat + (Math.random() - 0.5) * 0.01;
+                const lng = baseLng + (Math.random() - 0.5) * 0.01;
+                
+                document.getElementById('driverLat').value = lat.toFixed(4);
+                document.getElementById('driverLng').value = lng.toFixed(4);
+                
+                await updateDriverLocation();
+            }, 3000); // 每3秒更新一次
+        }
+
+        // 發送測試通知
+        async function sendTestNotification() {
+            const message = document.getElementById('notificationMessage').value;
+            const level = document.getElementById('notificationLevel').value;
+            
+            if (!message) {
+                alert('請輸入通知內容');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/test-notification`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: message,
+                        level: level
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    log(`📢 測試通知已發送: ${message}`, 'success');
+                } else {
+                    log(`❌ 通知發送失敗: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ 通知請求失敗: ${error.message}`, 'error');
+            }
+        }
+
+        // 請求通知權限
+        async function requestNotificationPermission() {
+            if ('Notification' in window) {
+                const permission = await Notification.requestPermission();
+                document.getElementById('notificationPermission').textContent = 
+                    permission === 'granted' ? '已授權' : '未授權';
+                log(`🔔 通知權限: ${permission}`, 'info');
+            } else {
+                log('❌ 瀏覽器不支援通知功能', 'error');
+            }
+        }
+
+        // 顯示通知
+        function showNotification(title, message, icon = '🔔') {
+            // 瀏覽器通知
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification(title, {
+                    body: message,
+                    icon: '/favicon.ico'
+                });
+            }
+            
+            // 頁面內通知
+            const notificationEl = document.createElement('div');
+            notificationEl.className = 'demo-notification';
+            notificationEl.innerHTML = `
+                <div style="display: flex; align-items: flex-start;">
+                    <span style="font-size: 20px; margin-right: 10px;">${icon}</span>
+                    <div style="flex: 1;">
+                        <div style="font-weight: bold; margin-bottom: 5px;">${title}</div>
+                        <div style="color: #666;">${message}</div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('notificationDemo').appendChild(notificationEl);
+            
+            setTimeout(() => {
+                notificationEl.remove();
+            }, 5000);
+        }
+
+        // 獲取連接統計
+        async function getConnectionStats() {
+            try {
+                const response = await fetch(`${API_BASE}/stats`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    const stats = result.stats;
+                    document.getElementById('systemStats').innerHTML = `
+                        總連接數: ${stats.totalConnections}<br>
+                        訂單訂閱: ${stats.orderSubscriptions}<br>
+                        外送員訂閱: ${stats.driverSubscriptions}<br>
+                        連接類型: ${JSON.stringify(stats.connectionsByType)}
+                    `;
+                    log('📊 系統統計已更新', 'success');
+                } else {
+                    log(`❌ 獲取統計失敗: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ 統計請求失敗: ${error.message}`, 'error');
+            }
+        }
+
+        // 獲取外送員統計
+        async function getDriverStats() {
+            try {
+                const response = await fetch(`${API_BASE}/driver-stats`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    const stats = result.stats;
+                    document.getElementById('systemStats').innerHTML = `
+                        總外送員數: ${stats.total_drivers}<br>
+                        線上外送員: ${stats.online_drivers}<br>
+                        忙碌外送員: ${stats.busy_drivers}<br>
+                        配送中: ${stats.delivering_drivers}
+                    `;
+                    log('🚚 外送員統計已更新', 'success');
+                } else {
+                    log(`❌ 獲取外送員統計失敗: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ 外送員統計請求失敗: ${error.message}`, 'error');
+            }
+        }
+
+        // 頁面載入時檢查通知權限
+        window.addEventListener('load', function() {
+            if ('Notification' in window) {
+                document.getElementById('notificationPermission').textContent = 
+                    Notification.permission === 'granted' ? '已授權' : '未授權';
+            } else {
+                document.getElementById('notificationPermission').textContent = '不支援';
+            }
+            
+            log('🚀 即時通知系統演示頁面已載入', 'info');
+            log('💡 提示: 請先點擊「建立連接」開始測試', 'info');
+        });
+
+        // 頁面關閉時清理資源
+        window.addEventListener('beforeunload', function() {
+            if (simulationInterval) {
+                clearInterval(simulationInterval);
+            }
+            if (eventSource) {
+                eventSource.close();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8">
+    <title>頁面不存在</title>
+    <link rel="stylesheet" href="/css/styles.css">
+  </head>
+  <body>
+    <header>
+      <div class="container">
+        <h1>🔍 找不到頁面</h1>
+      </div>
+    </header>
+    
+    <div class="container">
+      <div class="not-found-section">
+        <h2>404 - 頁面不存在</h2>
+        <p>您要查找的頁面不存在或已被移動。</p>
+        <p class="url-info">請求的網址：<code><%= url %></code></p>
+        
+        <div class="actions">
+          <a href="/" class="btn">🛒 前往購物</a>
+          <a href="/admin" class="btn">⚙️ 管理後台</a>
+        </div>
+      </div>
+    </div>
+    
+    <style>
+      .not-found-section {
+        background: #fff;
+        border-radius: 12px;
+        padding: 3rem;
+        margin: 2rem 0;
+        text-align: center;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        border-left: 4px solid #2196F3;
+      }
+      
+      .url-info {
+        background: #f0f8ff;
+        border: 1px solid #e3f2fd;
+        padding: 1rem;
+        border-radius: 8px;
+        margin: 1rem 0;
+        word-break: break-all;
+      }
+      
+      .actions {
+        margin: 2rem 0;
+      }
+      
+      .actions .btn {
+        margin: 0 0.5rem;
+        display: inline-block;
+      }
+    </style>
+  </body>
+</html>

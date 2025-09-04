@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理員登入</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      
+      body {
+        font-family: 'Microsoft YaHei', Arial, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+      
+      .admin-login-container {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 50px;
+        text-align: center;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        max-width: 450px;
+        width: 100%;
+        min-width: 350px;
+      }
+      
+      .admin-logo {
+        font-size: 4em;
+        margin-bottom: 20px;
+        background: linear-gradient(45deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      
+      h1 {
+        color: #2d3748;
+        margin-bottom: 15px;
+        font-size: 2em;
+        font-weight: 600;
+      }
+      
+      .subtitle {
+        color: #4a5568;
+        margin-bottom: 40px;
+        font-size: 1.1em;
+      }
+      
+      .error-message {
+        background: #fed7d7;
+        color: #c53030;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 25px;
+        border: 2px solid #fc8181;
+        font-weight: bold;
+        text-align: center;
+      }
+      
+      .admin-form-group {
+        margin-bottom: 25px;
+        text-align: left;
+      }
+      
+      .admin-form-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: #2d3748;
+        font-weight: 600;
+        font-size: 1.1em;
+      }
+      
+      .admin-form-group input {
+        width: 100%;
+        padding: 18px 20px;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        font-size: 1.2em;
+        transition: all 0.3s ease;
+        background: #f8f9fa;
+      }
+      
+      .admin-form-group input:focus {
+        outline: none;
+        border-color: #667eea;
+        background: white;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        transform: translateY(-1px);
+      }
+      
+      .admin-login-btn {
+        width: 100%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 20px;
+        border-radius: 12px;
+        font-size: 1.3em;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-top: 15px;
+      }
+      
+      .admin-login-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+      }
+      
+      .admin-login-btn:active {
+        transform: translateY(0);
+      }
+      
+      @media (max-width: 480px) {
+        .admin-login-container {
+          padding: 30px 25px;
+          margin: 10px;
+        }
+        
+        .admin-logo {
+          font-size: 3em;
+        }
+        
+        h1 {
+          font-size: 1.8em;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="admin-login-container">
+      <div class="admin-logo">⚙️</div>
+      <h1>後台管理系統</h1>
+      <p class="subtitle">管理員登入</p>
+      
+      <% if (error) { %>
+        <div class="error-message">
+          ⚠️ <%= error %>
+        </div>
+      <% } %>
+      
+      <form method="post" action="/admin/login">
+        <div class="admin-form-group">
+          <label for="password">管理員密碼</label>
+          <input type="password" id="password" name="password" placeholder="請輸入管理員密碼" required>
+        </div>
+        
+        <button type="submit" class="admin-login-btn">
+          🔐 登入管理後台
+        </button>
+      </form>
+    </div>
+  </body>
+</html>

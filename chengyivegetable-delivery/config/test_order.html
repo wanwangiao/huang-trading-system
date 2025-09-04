@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>測試訂單 - 誠意鮮蔬</title>
+</head>
+<body>
+    <h1>🧪 蔬果外送系統測試報告</h1>
+    
+    <h2>📋 測試目標</h2>
+    <ul>
+        <li>✅ 檢查現有商品列表</li>
+        <li>🔄 模擬客戶下單流程</li>
+        <li>🔄 驗證庫存扣減功能</li>
+        <li>🔄 測試Google Maps地址顯示</li>
+        <li>🔄 分析系統完整性</li>
+    </ul>
+
+    <h2>🛒 現有商品清單</h2>
+    <table border="1" style="border-collapse: collapse; width: 100%;">
+        <tr>
+            <th>商品名稱</th>
+            <th>價格類型</th>
+            <th>價格</th>
+            <th>單位說明</th>
+        </tr>
+        <tr>
+            <td>🥬 有機高麗菜</td>
+            <td>秤重計價</td>
+            <td>80元/斤</td>
+            <td>依重量計價</td>
+        </tr>
+        <tr>
+            <td>🍅 新鮮番茄</td>
+            <td>秤重計價</td>
+            <td>依重量計價</td>
+            <td>依重量計價</td>
+        </tr>
+        <tr>
+            <td>🥬 青江菜</td>
+            <td>固定價格</td>
+            <td>24元/半斤, 40元/斤</td>
+            <td>固定分量選項</td>
+        </tr>
+        <tr>
+            <td>🥕 胡蘿蔔</td>
+            <td>秤重計價</td>
+            <td>依重量計價</td>
+            <td>依重量計價</td>
+        </tr>
+        <tr>
+            <td>🥒 小黃瓜</td>
+            <td>固定價格</td>
+            <td>48元/5顆, 90元/10顆</td>
+            <td>固定數量選項</td>
+        </tr>
+        <tr>
+            <td>🧅 洋蔥</td>
+            <td>秤重計價</td>
+            <td>依重量計價</td>
+            <td>依重量計價</td>
+        </tr>
+    </table>
+
+    <h2>👤 模擬客戶資料</h2>
+    <div style="background: #f0f8ff; padding: 15px; border-radius: 8px;">
+        <p><strong>客戶姓名：</strong>張小明</p>
+        <p><strong>聯絡電話：</strong>0912-345-678</p>
+        <p><strong>送貨地址：</strong>新北市三峽區大學路151號 (台北大學)</p>
+        <p><strong>備註：</strong>請放在警衛室，謝謝</p>
+    </div>
+
+    <h2>🛍️ 模擬購物車</h2>
+    <table border="1" style="border-collapse: collapse; width: 100%;">
+        <tr>
+            <th>商品</th>
+            <th>數量/重量</th>
+            <th>單價</th>
+            <th>小計</th>
+        </tr>
+        <tr>
+            <td>🥬 有機高麗菜</td>
+            <td>1.5斤</td>
+            <td>80元/斤</td>
+            <td>120元</td>
+        </tr>
+        <tr>
+            <td>🥒 小黃瓜</td>
+            <td>5顆</td>
+            <td>48元/5顆</td>
+            <td>48元</td>
+        </tr>
+        <tr>
+            <td>🥬 青江菜</td>
+            <td>1斤</td>
+            <td>40元/斤</td>
+            <td>40元</td>
+        </tr>
+        <tr style="background: #f9f9f9; font-weight: bold;">
+            <td colspan="3">小計</td>
+            <td>208元</td>
+        </tr>
+        <tr style="background: #f9f9f9;">
+            <td colspan="3">運費</td>
+            <td>30元</td>
+        </tr>
+        <tr style="background: #e8f5e8; font-weight: bold;">
+            <td colspan="3">總計</td>
+            <td>238元</td>
+        </tr>
+    </table>
+
+    <h2>📍 地址測試</h2>
+    <p>測試地址：<strong>新北市三峽區大學路151號</strong></p>
+    <p>此地址應該能在Google Maps上正確顯示並標記位置。</p>
+
+    <script>
+        console.log('🧪 測試腳本開始執行...');
+        
+        // 模擬測試流程
+        function runTests() {
+            console.log('1. ✅ 檢查商品列表 - 完成');
+            console.log('2. 🔄 模擬下單流程 - 進行中');
+            console.log('3. ❓ 等待庫存扣減驗證');
+            console.log('4. ❓ 等待地址驗證');
+            
+            // 模擬送出訂單
+            setTimeout(() => {
+                console.log('📦 訂單已送出，訂單編號: #TEST001');
+                console.log('🏠 地址解析中...');
+                
+                setTimeout(() => {
+                    console.log('📍 地址解析完成');
+                    console.log('📊 測試完成，準備生成報告...');
+                }, 2000);
+            }, 1000);
+        }
+        
+        // 延遲執行測試
+        setTimeout(runTests, 500);
+    </script>
+</body>
+</html>

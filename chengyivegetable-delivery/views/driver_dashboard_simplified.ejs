@@ -1,0 +1,4903 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <title>外送員工作台 - 承億蔬菜</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#28a745">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="承億外送">
+    <link rel="manifest" href="/manifest.json">
+    
+    <link rel="stylesheet" href="/css/driver-portal.css">
+    
+    <!-- Sortable.js for drag & drop -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    
+    <!-- Google Maps JavaScript API -->
+    <script async defer 
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBRwW-NMUDGMXaDhvl3oYJs_OqjfXWTTNE&libraries=geometry,places&callback=initGoogleMapsAPI&language=zh-TW&region=TW">
+    </script>
+    
+    <style>
+        /* ========== 全域樣式 ========== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+            background: #f5f5f5;
+            overflow-x: hidden;
+            padding-bottom: 80px; /* 留空間給底部購物車橫條 */
+        }
+        
+        /* ========== 模式切換系統 ========== */
+        .app-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .mode-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* 接單模式 */
+        .order-selection-mode {
+            transform: translateX(0);
+            background: #f5f5f5;
+            overflow-y: auto;
+        }
+        
+        .order-selection-mode.hidden {
+            transform: translateX(-100%);
+        }
+        
+        /* 導航模式 */
+        .navigation-mode {
+            transform: translateX(100%);
+            background: #000;
+            color: #fff;
+        }
+        
+        .navigation-mode.active {
+            transform: translateX(0);
+        }
+        
+        /* ========== 接單模式樣式 ========== */
+        .simplified-dashboard {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        /* 統計記錄模態框 */
+        .stats-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .stats-modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .stats-modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            max-width: 400px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+            transform: scale(0.8);
+            animation: modalSlideIn 0.3s ease forwards;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes modalSlideIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .modal-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .modal-close {
+            background: #f5f5f5;
+            border: none;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        .modal-close:hover {
+            background: #e0e0e0;
+            transform: scale(1.1);
+        }
+        
+        .detailed-stats {
+            display: grid;
+            gap: 15px;
+        }
+        
+        .detailed-stat-item {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 15px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #dee2e6;
+        }
+        
+        .stat-label {
+            font-weight: 500;
+            color: #495057;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        
+        .stat-icon {
+            font-size: 20px;
+        }
+        
+        /* 標題按鈕組 */
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .btn-select {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-select:hover {
+            background: #5a6fd8;
+        }
+        
+        .btn-lock {
+            background: #f39c12;
+            color: white;
+        }
+        
+        .btn-lock:hover {
+            background: #e67e22;
+        }
+        
+        .btn-cancel {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .btn-cancel:hover {
+            background: #c0392b;
+        }
+        
+        /* 鎖定狀態指示 */
+        .order-card.locked {
+            border: 2px solid #f39c12;
+            background: linear-gradient(135deg, #fff8e1 0%, #ffe0b2 100%);
+            position: relative;
+        }
+        
+        .order-card.locked::after {
+            content: "🔒 30秒";
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #f39c12;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        
+        /* 區域分組樣式 */
+        .area-group {
+            margin-bottom: 25px;
+        }
+        
+        .area-group-header {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px 8px 0 0;
+            margin-bottom: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .area-group-header h4 {
+            margin: 0;
+            font-size: 16px;
+        }
+        
+        .area-order-count {
+            background: rgba(255,255,255,0.2);
+            padding: 4px 12px;
+            border-radius: 10px;
+            font-size: 12px;
+        }
+        
+        .area-orders {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            padding: 15px;
+        }
+        
+        /* 主要內容區域 */
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+        }
+        
+        /* 訂單列表區域 */
+        .orders-section {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+        
+        .section-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .orders-list {
+            max-height: 600px;
+            overflow-y: auto;
+            padding: 15px;
+        }
+        
+        /* 訂單卡片 */
+        .order-card {
+            background: #f8f9fa;
+            border: 2px solid transparent;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .order-card:hover {
+            border-color: #667eea;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .order-card.selected {
+            border-color: #27ae60;
+            background: #e8f5e8;
+        }
+        
+        /* Checkbox 樣式 */
+        .order-checkbox {
+            display: flex;
+            align-items: flex-start;
+            padding-top: 5px;
+        }
+        
+        .order-select-checkbox {
+            display: none;
+        }
+        
+        .checkbox-label {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            display: block;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s ease;
+            background: white;
+        }
+        
+        .order-select-checkbox:checked + .checkbox-label {
+            background: #27ae60;
+            border-color: #27ae60;
+        }
+        
+        .order-select-checkbox:checked + .checkbox-label::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .order-card:hover .checkbox-label {
+            border-color: #667eea;
+        }
+        
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .order-number {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .order-area {
+            background: #667eea;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        .order-customer {
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #555;
+        }
+        
+        .order-address {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.4;
+        }
+        
+        
+        .sortable-list.drag-over {
+            border-color: #27ae60;
+            background: #e8f5e8;
+        }
+        
+        .delivery-order-card {
+            background: white;
+            border-left: 4px solid #27ae60;
+            position: relative;
+            cursor: move;
+        }
+        
+        .delivery-order-card::before {
+            content: "⋮⋮";
+            position: absolute;
+            left: -2px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #27ae60;
+            font-size: 16px;
+        }
+        
+        .delivery-order-card:hover {
+            background: #f0f8f0;
+        }
+        
+        .order-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        .btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-accept {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .btn-accept:hover {
+            background: #219a52;
+        }
+        
+        .btn-remove {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .btn-remove:hover {
+            background: #c0392b;
+        }
+        
+        .btn-optimize {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+            color: white;
+            font-size: 16px;
+            padding: 12px 25px;
+            border-radius: 8px;
+            margin: 15px;
+        }
+        
+        .btn-optimize:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(243, 156, 18, 0.3);
+        }
+        
+        /* 確認接單按鈕容器 */
+        .confirm-orders-container {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            width: 90%;
+            max-width: 500px;
+        }
+        
+        .btn-confirm-orders {
+            width: 100%;
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 16px 24px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3);
+        }
+        
+        .btn-confirm-orders:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
+        }
+        
+        .btn-confirm-orders:active {
+            transform: translateY(0);
+        }
+        
+        /* 空狀態 */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+        
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        
+        /* 載入狀態 */
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* 通知樣式 */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #27ae60;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification.error {
+            background: #e74c3c;
+        }
+        
+        /* 底部橫條購物車 */
+        .shopping-cart-btn {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 -4px 15px rgba(102, 126, 234, 0.4);
+            z-index: 1000;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            border-radius: 0;
+        }
+        
+        .shopping-cart-btn.show {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .shopping-cart-btn:hover {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4c93 100%);
+            box-shadow: 0 -6px 20px rgba(102, 126, 234, 0.6);
+        }
+        
+        .cart-left-info {
+            display: flex;
+            align-items: center;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .cart-icon {
+            font-size: 20px;
+            margin-right: 8px;
+        }
+        
+        .cart-count {
+            background: rgba(255,255,255,0.3);
+            padding: 2px 8px;
+            border-radius: 12px;
+            margin-left: 8px;
+            font-size: 14px;
+        }
+        
+        .cart-right-action {
+            display: flex;
+            align-items: center;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .cart-total {
+            margin-right: 8px;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .cart-action-icon {
+            font-size: 18px;
+            margin-left: 8px;
+        }
+        
+        /* 購物車面板 */
+        .shopping-cart-panel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+            z-index: 2000;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            max-height: 70vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .shopping-cart-panel.show {
+            transform: translateY(0);
+        }
+        
+        .cart-panel-header {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .cart-panel-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .cart-close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #666;
+            cursor: pointer;
+            padding: 5px;
+        }
+        
+        .cart-panel-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        
+        .cart-order-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .cart-order-item:hover {
+            border-color: #667eea;
+        }
+        
+        .cart-remove-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #ff4757;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .cart-panel-footer {
+            padding: 20px;
+            border-top: 1px solid #eee;
+            background: #fafafa;
+        }
+        
+        .cart-action-btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+        }
+        
+        .cart-action-btn.lock {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+        }
+        
+        .cart-action-btn.optimize {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+        }
+        
+        .cart-action-btn.start {
+            background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+        }
+        
+        .cart-action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .cart-empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+        
+        .cart-empty-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        
+        /* 統計面板 */
+        .compact-stats-panel {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .stats-summary {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .main-stats {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+            flex: 1;
+        }
+        
+        .record-query-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #fff;
+            color: #333;
+            padding: 8px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid #ddd;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        
+        .record-query-btn:hover {
+            background: #f5f5f5;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .query-icon {
+            font-size: 16px;
+        }
+        
+        .record-query-btn span:last-child {
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-item h3 {
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 2px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .stat-item p {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+        
+        /* 地圖模態框樣式 */
+        .map-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 10000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .map-modal-content {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 900px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .map-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .map-modal-header h3 {
+            margin: 0;
+            color: #333;
+        }
+        
+        .map-close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+            padding: 5px 10px;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+        
+        .map-close-btn:hover {
+            background: #f0f0f0;
+        }
+        
+        .google-maps-container {
+            width: 100%;
+            height: 400px;
+            flex-grow: 1;
+            border-radius: 0 0 8px 8px;
+        }
+        
+        .map-modal-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .map-modal-footer p {
+            margin: 0;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        @media (max-width: 768px) {
+            .map-modal-content {
+                width: 95%;
+                max-height: 95vh;
+            }
+            
+            .google-maps-container {
+                height: 300px;
+            }
+            
+            .map-modal-footer {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+        
+        /* ========== 導航模式樣式 (Uber風格) ========== */
+        
+        /* 地圖容器 - 佔85%螢幕 */
+        .nav-map-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 85vh;
+            z-index: 1;
+        }
+        
+        .nav-google-map {
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* GPS定位按鈕 */
+        .nav-gps-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 50%;
+            border: none;
+            color: #00d4aa;
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 10;
+            transition: all 0.3s;
+        }
+        
+        .nav-gps-button:hover {
+            background: rgba(0, 0, 0, 0.9);
+            transform: scale(1.05);
+        }
+        
+        /* 返回按鈕 */
+        .back-to-orders-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            z-index: 10;
+            transition: all 0.3s;
+        }
+        
+        .back-to-orders-btn:hover {
+            background: rgba(0, 0, 0, 0.9);
+        }
+        
+        /* 底部狀態列 - 佔15%螢幕 */
+        .nav-bottom-status-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 15vh;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            z-index: 5;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 20px 20px 0 0;
+        }
+        
+        .nav-bottom-status-bar:hover {
+            background: linear-gradient(135deg, #2d2d2d 0%, #404040 100%);
+        }
+        
+        /* 狀態列內容 - 簡化版本 */
+        .nav-status-content {
+            padding: 8px 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+            gap: 5px;
+        }
+        
+        /* 第一排：訂單資訊列 */
+        .nav-info-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 14px;
+            color: #fff;
+        }
+        
+        .nav-order-count, .nav-eta, .nav-current-customer {
+            color: #00d4aa;
+            font-weight: 500;
+        }
+        
+        .nav-details-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: #00d4aa;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .nav-details-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        /* 第二排：操作按鈕列 */
+        .nav-action-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .nav-call-btn, .nav-photo-btn, .nav-problem-btn, .nav-complete-btn {
+            flex: 1;
+            height: 40px;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        
+        .nav-call-btn {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+        
+        .nav-photo-btn {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+        }
+        
+        .nav-problem-btn {
+            background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+        }
+        
+        .nav-complete-btn {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        }
+        
+        .nav-call-btn:hover, .nav-photo-btn:hover, 
+        .nav-problem-btn:hover, .nav-complete-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        /* 舊樣式已整合到上方 */
+        
+        /* 批次訂單按鈕 - 右上角 */
+        .nav-batch-orders-btn {
+            position: absolute;
+            top: 20px;
+            right: 80px;
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+            border: none;
+            border-radius: 15px;
+            color: #000;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3);
+        }
+        
+        .nav-batch-orders-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(255, 193, 7, 0.4);
+        }
+        
+        .nav-batch-orders-btn .batch-count {
+            font-size: 10px;
+            line-height: 1;
+            margin-top: -2px;
+        }
+        
+        /* ========== 訂單詳情小卡彈窗 ========== */
+        .order-details-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .order-details-modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .order-details-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s ease;
+        }
+        
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .order-details-header {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 20px 20px 0 0;
+            position: relative;
+        }
+        
+        .order-details-header h3 {
+            margin: 0 0 5px 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .order-details-header .order-id {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .order-details-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s;
+        }
+        
+        .order-details-close:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .order-details-content {
+            padding: 20px;
+        }
+        
+        .order-section {
+            margin-bottom: 25px;
+        }
+        
+        .order-section h4 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .order-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .order-info-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .order-info-item .label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        
+        .order-info-item .value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .product-list {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+        }
+        
+        .product-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .product-item:last-child {
+            border-bottom: none;
+        }
+        
+        .product-name {
+            flex: 1;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .product-quantity {
+            margin: 0 15px;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .product-price {
+            font-weight: 600;
+            color: #007bff;
+        }
+        
+        /* 拍照上傳區域 */
+        .photo-upload-area {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            border: 2px dashed #dee2e6;
+            transition: all 0.3s;
+        }
+        
+        .photo-upload-area.dragover {
+            border-color: #007bff;
+            background: #e3f2fd;
+        }
+        
+        .photo-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .photo-preview img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 2px solid #dee2e6;
+        }
+        
+        .upload-btn {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+        
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+        }
+        
+        /* 問題回報區域 */
+        .problem-report-area {
+            background: #fff3cd;
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .problem-categories {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .problem-category {
+            background: #fff;
+            border: 2px solid #dee2e6;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .problem-category.selected {
+            background: #dc3545;
+            color: white;
+            border-color: #dc3545;
+        }
+        
+        .problem-description {
+            width: 100%;
+            min-height: 80px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 12px;
+            resize: vertical;
+            font-family: inherit;
+        }
+        
+        /* 底部按鈕組 */
+        .order-details-footer {
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 0 0 20px 20px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .action-btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-height: 56px;
+        }
+        
+        .complete-btn {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+        
+        .complete-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+        }
+        
+        .report-problem-btn {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+        }
+        
+        .report-problem-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+        }
+        
+        /* ========== 響應式設計 & 觸控友善 ========== */
+        @media (max-width: 768px) {
+            /* 地圖和底部狀態列在手機上保持85%/15%比例 */
+            .nav-map-container {
+                height: 85vh;
+            }
+            
+            .nav-bottom-status-bar {
+                height: 15vh;
+                padding: 0;
+            }
+            
+            .nav-status-content {
+                padding: 8px 15px;
+                gap: 10px;
+            }
+            
+            .nav-customer-name {
+                font-size: 14px;
+                min-width: 60px;
+            }
+            
+            .nav-remaining-distance {
+                font-size: 12px;
+                min-width: 60px;
+            }
+            
+            .nav-call-btn, .nav-details-btn {
+                width: 48px;
+                height: 48px;
+                font-size: 16px;
+            }
+            
+            /* 批次訂單按鈕在手機上調整 */
+            .nav-batch-orders-btn {
+                right: 70px;
+                width: 48px;
+                height: 48px;
+                font-size: 16px;
+            }
+            
+            .nav-batch-orders-btn .batch-count {
+                font-size: 9px;
+            }
+            
+            /* 返回和GPS按鈕調整 */
+            .back-to-orders-btn {
+                padding: 8px 12px;
+                font-size: 12px;
+            }
+            
+            .nav-gps-button {
+                width: 44px;
+                height: 44px;
+                font-size: 18px;
+            }
+            
+            /* 訂單詳情彈窗在手機上全螢幕 */
+            .order-details-modal.show {
+                padding: 10px;
+            }
+            
+            .order-details-card {
+                max-width: 100%;
+                margin: 0;
+                border-radius: 15px;
+            }
+            
+            .order-details-header {
+                padding: 15px;
+                border-radius: 15px 15px 0 0;
+            }
+            
+            .order-details-header h3 {
+                font-size: 16px;
+            }
+            
+            .order-details-content {
+                padding: 15px;
+            }
+            
+            .order-section h4 {
+                font-size: 14px;
+            }
+            
+            .order-info-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .order-info-item {
+                padding: 12px;
+            }
+            
+            .order-info-item .label {
+                font-size: 11px;
+            }
+            
+            .order-info-item .value {
+                font-size: 13px;
+            }
+            
+            .photo-upload-area {
+                padding: 15px;
+            }
+            
+            .upload-btn {
+                padding: 10px 20px;
+                font-size: 13px;
+            }
+            
+            .problem-categories {
+                gap: 6px;
+            }
+            
+            .problem-category {
+                padding: 6px 12px;
+                font-size: 11px;
+            }
+            
+            .problem-description {
+                min-height: 60px;
+                padding: 10px;
+                font-size: 13px;
+            }
+            
+            .order-details-footer {
+                padding: 15px;
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .action-btn {
+                padding: 12px;
+                font-size: 14px;
+                min-height: 48px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            /* 超小螢幕優化 */
+            .nav-delivery-info {
+                gap: 8px;
+            }
+            
+            .nav-customer-name {
+                font-size: 13px;
+                min-width: 50px;
+            }
+            
+            .nav-remaining-distance {
+                font-size: 11px;
+                min-width: 50px;
+            }
+            
+            .nav-call-btn, .nav-details-btn {
+                width: 42px;
+                height: 42px;
+                font-size: 14px;
+            }
+            
+            .nav-batch-orders-btn {
+                right: 60px;
+                width: 42px;
+                height: 42px;
+                font-size: 14px;
+            }
+            
+            .order-details-modal.show {
+                padding: 5px;
+            }
+            
+            .order-details-card {
+                border-radius: 10px;
+            }
+            
+            .order-details-header {
+                border-radius: 10px 10px 0 0;
+            }
+        }
+        
+        /* 觸控設備優化 */
+        @media (hover: none) and (pointer: coarse) {
+            /* 移除hover效果，增加按鈕點擊區域 */
+            .nav-call-btn:hover,
+            .nav-details-btn:hover,
+            .nav-batch-orders-btn:hover,
+            .complete-btn:hover,
+            .report-problem-btn:hover,
+            .upload-btn:hover {
+                transform: none;
+            }
+            
+            /* 增加點擊時的視覺回饋 */
+            .nav-call-btn:active,
+            .nav-details-btn:active,
+            .nav-batch-orders-btn:active {
+                transform: scale(0.95);
+                opacity: 0.8;
+            }
+            
+            .complete-btn:active,
+            .report-problem-btn:active,
+            .upload-btn:active {
+                transform: scale(0.98);
+                opacity: 0.9;
+            }
+            
+            /* 確保按鈕觸控區域足夠大 */
+            .nav-call-btn, .nav-details-btn, .nav-batch-orders-btn {
+                min-width: 48px;
+                min-height: 48px;
+            }
+            
+            .action-btn {
+                min-height: 56px;
+            }
+            
+            /* 問題分類按鈕觸控優化 */
+            .problem-category {
+                min-height: 36px;
+                padding: 8px 16px;
+            }
+        }
+        
+        /* 安全區域適配（適用於iPhone X等有瀏海的設備） */
+        @supports (padding: max(0px)) {
+            .nav-bottom-status-bar {
+                padding-bottom: max(env(safe-area-inset-bottom), 10px);
+            }
+            
+            .order-details-modal.show {
+                padding-top: max(env(safe-area-inset-top), 10px);
+                padding-bottom: max(env(safe-area-inset-bottom), 10px);
+            }
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        
+        /* 可拉升的訂單面板 */
+        .nav-orders-panel {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 85vh;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            border-radius: 25px 25px 0 0;
+            transform: translateY(65vh);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 15;
+            box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        .nav-orders-panel.expanded {
+            transform: translateY(0);
+        }
+        
+        /* 面板拖拉手柄 */
+        .nav-panel-handle {
+            width: 50px;
+            height: 5px;
+            background: #555;
+            border-radius: 3px;
+            margin: 15px auto;
+            cursor: pointer;
+        }
+        
+        /* 訂單列表 */
+        .nav-orders-header {
+            padding: 0 25px 15px;
+            border-bottom: 1px solid #333;
+        }
+        
+        .nav-orders-header h2 {
+            color: #00d4aa;
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+        
+        .nav-orders-summary {
+            color: #aaa;
+            font-size: 14px;
+        }
+        
+        .nav-orders-list {
+            padding: 20px 25px;
+            overflow-y: auto;
+            height: calc(85vh - 120px);
+        }
+        
+        /* 正在配送的訂單 */
+        .nav-current-order {
+            background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .nav-current-order::before {
+            content: '✓';
+            position: absolute;
+            left: -10px;
+            top: -10px;
+            width: 40px;
+            height: 40px;
+            background: #fff;
+            color: #00d4aa;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        .nav-current-order h3 {
+            color: #fff;
+            font-size: 16px;
+            margin-bottom: 8px;
+            margin-left: 20px;
+        }
+        
+        .nav-current-order .nav-order-address {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 14px;
+            margin-left: 20px;
+        }
+        
+        /* 完成配送按鈕 */
+        .nav-complete-delivery-btn {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%);
+            color: #fff;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 20;
+            transition: all 0.3s;
+            box-shadow: 0 5px 20px rgba(0, 212, 170, 0.3);
+        }
+        
+        .nav-complete-delivery-btn:hover {
+            transform: translateX(-50%) translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 212, 170, 0.4);
+        }
+        
+        /* 手勢提示 */
+        .nav-gesture-hint {
+            position: absolute;
+            bottom: 120px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 12px;
+            animation: fadeInOut 3s infinite;
+        }
+        
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.8; }
+        }
+        
+        /* 模式切換按鈕 */
+        .start-delivery-btn {
+            background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 20px auto;
+            display: block;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(0, 212, 170, 0.3);
+        }
+        
+        .start-delivery-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 212, 170, 0.4);
+        }
+        
+        .start-delivery-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        /* PWA 全螢幕模式樣式 */
+        body.fullscreen-mode {
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        
+        body.pwa-installed {
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            overscroll-behavior: contain;
+        }
+        
+        /* 防止橡皮筋效果 */
+        html, body {
+            overscroll-behavior-y: contain;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        /* 安裝按鈕動畫 */
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            }
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+            }
+            100% {
+                transform: scale(1);
+                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            }
+        }
+        
+        #install-pwa-btn:hover {
+            transform: scale(1.1);
+            transition: transform 0.3s ease;
+        }
+        
+        /* iOS安全區域適配 */
+        @supports (padding: env(safe-area-inset-top)) {
+            .simplified-dashboard {
+                padding-top: calc(20px + env(safe-area-inset-top));
+                padding-bottom: calc(20px + env(safe-area-inset-bottom));
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- App 容器 -->
+    <div class="app-container">
+        
+        <!-- ========== 接單模式 ========== -->
+        <div class="mode-container order-selection-mode" id="order-mode">
+            <!-- 頂部導航 -->
+            <header class="driver-header">
+                <div class="header-content">
+                    <div class="driver-info">
+                        <h1>🍃 承億蔬菜外送</h1>
+                        <p>外送員：<%= driver.name %></p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="record-query-btn" onclick="openStatsModal()">
+                            <span class="query-icon">📊</span>
+                            <span>記錄查詢</span>
+                        </button>
+                        <span class="status online">🟢 上線中</span>
+                        <a href="/driver/logout" class="logout-btn">登出</a>
+                    </div>
+                </div>
+            </header>
+
+            <main class="simplified-dashboard">
+        
+        <!-- 確認接單按鈕（固定在底部） -->
+        <div class="confirm-orders-container" id="confirm-orders-container" style="display: none;">
+            <button class="btn-confirm-orders" onclick="confirmSelectedOrders()">
+                ✅ 確認接單 (<span id="confirm-count">0</span> 筆訂單)
+            </button>
+        </div>
+
+        <!-- 主要內容區域 -->
+        <div class="main-content">
+            <!-- 統一訂單選擇區 -->
+            <div class="orders-section">
+                <div class="section-header">
+                    <h2 class="section-title">📦 可接訂單 (<span id="total-available-count">11</span>)</h2>
+                </div>
+                <div class="orders-list" id="unified-orders">
+                    <!-- 直接顯示的靜態訂單 -->
+                    <div class="area-group">
+                        <div class="area-group-header">
+                            <h4>📍 三峽區</h4>
+                            <span class="area-order-count">6 筆</span>
+                        </div>
+                        <div class="area-orders">
+                            <div class="order-card" onclick="selectOrder(1)">
+                                <div class="order-checkbox">
+                                    <input type="checkbox" class="order-select-checkbox" id="order-1">
+                                    <label for="order-1" class="checkbox-label"></label>
+                                </div>
+                                <div class="order-content">
+                                    <div class="order-header">
+                                        <span class="order-number">訂單 #1001</span>
+                                        <span class="order-area">三峽區</span>
+                                    </div>
+                                    <div class="order-customer">👤 王小明 📞 0912345678</div>
+                                    <div class="order-address">📍 新北市三峽區中山路123號</div>
+                                    <div class="order-payment">💳 現金付款 - NT$ 130</div>
+                                </div>
+                            </div>
+                            
+                            <div class="order-card" onclick="selectOrder(2)">
+                                <div class="order-checkbox">
+                                    <input type="checkbox" class="order-select-checkbox" id="order-2">
+                                    <label for="order-2" class="checkbox-label"></label>
+                                </div>
+                                <div class="order-content">
+                                    <div class="order-header">
+                                        <span class="order-number">訂單 #1002</span>
+                                        <span class="order-area">三峽區</span>
+                                    </div>
+                                    <div class="order-customer">👤 李小華 📞 0923456789</div>
+                                    <div class="order-address">📍 新北市三峽區民權街45號</div>
+                                    <div class="order-payment">💳 LINE Pay - NT$ 185</div>
+                                </div>
+                            </div>
+                            
+                            <div class="order-card" onclick="selectOrder(3)">
+                                <div class="order-checkbox">
+                                    <input type="checkbox" class="order-select-checkbox" id="order-3">
+                                    <label for="order-3" class="checkbox-label"></label>
+                                </div>
+                                <div class="order-content">
+                                    <div class="order-header">
+                                        <span class="order-number">訂單 #1003</span>
+                                        <span class="order-area">三峽區</span>
+                                    </div>
+                                    <div class="order-customer">👤 張小美 📞 0934567890</div>
+                                    <div class="order-address">📍 新北市三峽區復興路67號</div>
+                                    <div class="order-payment">💳 轉帳付款 - NT$ 210</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="area-group">
+                        <div class="area-group-header">
+                            <h4>📍 樹林區</h4>
+                            <span class="area-order-count">3 筆</span>
+                        </div>
+                        <div class="area-orders">
+                            <div class="order-card" onclick="selectOrder(4)">
+                                <div class="order-checkbox">
+                                    <input type="checkbox" class="order-select-checkbox" id="order-4">
+                                    <label for="order-4" class="checkbox-label"></label>
+                                </div>
+                                <div class="order-content">
+                                    <div class="order-header">
+                                        <span class="order-number">訂單 #1004</span>
+                                        <span class="order-area">樹林區</span>
+                                    </div>
+                                    <div class="order-customer">👤 陳大明 📞 0945678901</div>
+                                    <div class="order-address">📍 新北市樹林區中正路88號</div>
+                                    <div class="order-payment">💳 現金付款 - NT$ 150</div>
+                                </div>
+                            </div>
+                            
+                            <div class="order-card" onclick="selectOrder(5)">
+                                <div class="order-checkbox">
+                                    <input type="checkbox" class="order-select-checkbox" id="order-5">
+                                    <label for="order-5" class="checkbox-label"></label>
+                                </div>
+                                <div class="order-content">
+                                    <div class="order-header">
+                                        <span class="order-number">訂單 #1005</span>
+                                        <span class="order-area">樹林區</span>
+                                    </div>
+                                    <div class="order-customer">👤 林淑芬 📞 0956789012</div>
+                                    <div class="order-address">📍 新北市樹林區樹新路99號</div>
+                                    <div class="order-payment">💳 LINE Pay - NT$ 175</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="area-group">
+                        <div class="area-group-header">
+                            <h4>📍 鶯歌區</h4>
+                            <span class="area-order-count">2 筆</span>
+                        </div>
+                        <div class="area-orders">
+                            <div class="order-card" onclick="selectOrder(6)">
+                                <div class="order-checkbox">
+                                    <input type="checkbox" class="order-select-checkbox" id="order-6">
+                                    <label for="order-6" class="checkbox-label"></label>
+                                </div>
+                                <div class="order-content">
+                                    <div class="order-header">
+                                        <span class="order-number">訂單 #1006</span>
+                                        <span class="order-area">鶯歌區</span>
+                                    </div>
+                                    <div class="order-customer">👤 黃志偉 📞 0967890123</div>
+                                    <div class="order-address">📍 新北市鶯歌區文化路55號</div>
+                                    <div class="order-payment">💳 轉帳付款 - NT$ 195</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button onclick="refreshOrders()" class="btn btn-primary" style="margin: 20px auto; display: block;">
+                        🔄 重新載入訂單
+                    </button>
+                </div>
+            </div>
+
+        </div>
+        
+    </main>
+        </div>
+        
+        <!-- ========== 導航模式 (Uber風格) ========== -->
+        <div class="mode-container navigation-mode" id="navigation-mode">
+            <!-- 返回接單按鈕 -->
+            <button class="back-to-orders-btn" onclick="switchToOrderMode()">← 返回接單</button>
+            
+            <!-- 批次訂單按鈕 -->
+            <button class="nav-batch-orders-btn" onclick="showBatchOrdersPanel()" title="批次訂單管理">
+                📋
+                <span class="batch-count" id="batch-count">12</span>
+            </button>
+            
+            <!-- Google Maps 地圖容器 -->
+            <div class="nav-map-container">
+                <div class="nav-google-map" id="nav-google-map"></div>
+                <button class="nav-gps-button" onclick="getCurrentLocationForNav()">📍</button>
+            </div>
+            
+            <!-- 底部狀態列 - 85%/15%設計 -->
+            <div class="nav-bottom-status-bar">
+                <div class="nav-status-content">
+                    <!-- 第一排：訂單資訊 -->
+                    <div class="nav-info-row">
+                        <div class="nav-order-count">📦 <span id="nav-order-count">0</span>筆訂單</div>
+                        <div class="nav-eta">⏰ <span id="nav-eta">計算中</span></div>
+                        <div class="nav-current-customer">👤 <span id="nav-customer-display">準備配送</span></div>
+                        <button class="nav-details-btn" onclick="showNavOrderDetails()" title="查看訂單詳情">詳情➤</button>
+                    </div>
+                    
+                    <!-- 第二排：操作按鈕 -->
+                    <div class="nav-action-row">
+                        <button class="nav-call-btn" onclick="callCurrentCustomer()" title="聯絡客戶">📞 聯絡客戶</button>
+                        <button class="nav-photo-btn" onclick="takeDeliveryPhoto()" title="拍照送達">📷 拍照送達</button>
+                        <button class="nav-problem-btn" onclick="reportProblem()" title="問題回報">🚨 問題回報</button>
+                        <button class="nav-complete-btn" onclick="completeCurrentDelivery()" title="完成配送">✅完成配送</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 手勢提示 -->
+            <div class="nav-gesture-hint">👆 點擊或向上滑動查看所有訂單</div>
+            
+            <!-- 可拉升的訂單面板 -->
+            <div class="nav-orders-panel" id="nav-orders-panel">
+                <div class="nav-panel-handle" onclick="toggleNavOrdersPanel()"></div>
+                
+                <div class="nav-orders-header">
+                    <h2>今日配送</h2>
+                    <div class="nav-orders-summary" id="nav-orders-summary">準備開始配送</div>
+                </div>
+                
+                <div class="nav-orders-list" id="nav-orders-list">
+                    <!-- 動態載入配送訂單 -->
+                </div>
+            </div>
+            
+            <!-- 完成配送按鈕 -->
+            <button class="nav-complete-delivery-btn" onclick="completeCurrentDelivery()" id="nav-complete-btn" style="display: none;">
+                ✅ 完成此筆配送
+            </button>
+        </div>
+        
+    </div>
+
+    <!-- ========== 訂單詳情小卡彈窗 ========== -->
+    <div class="order-details-modal" id="order-details-modal">
+        <div class="order-details-card">
+            <!-- 標題列 -->
+            <div class="order-details-header">
+                <h3 id="order-customer-name">客戶姓名</h3>
+                <div class="order-id" id="order-id">訂單編號: #12345</div>
+                <button class="order-details-close" onclick="hideOrderDetails()">&times;</button>
+            </div>
+            
+            <!-- 內容區域 -->
+            <div class="order-details-content">
+                <!-- 訂單資訊 -->
+                <div class="order-section">
+                    <h4>📋 訂單資訊</h4>
+                    <div class="order-info-grid">
+                        <div class="order-info-item">
+                            <div class="label">配送地址</div>
+                            <div class="value" id="order-address">載入中...</div>
+                        </div>
+                        <div class="order-info-item">
+                            <div class="label">聯絡電話</div>
+                            <div class="value" id="order-phone">載入中...</div>
+                        </div>
+                        <div class="order-info-item">
+                            <div class="label">配送時間</div>
+                            <div class="value" id="order-time">載入中...</div>
+                        </div>
+                        <div class="order-info-item">
+                            <div class="label">付款方式</div>
+                            <div class="value" id="order-payment">載入中...</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 商品清單 -->
+                <div class="order-section">
+                    <h4>🛒 商品清單</h4>
+                    <div class="product-list" id="product-list">
+                        <!-- 動態載入商品 -->
+                    </div>
+                </div>
+                
+                <!-- 拍照上傳 -->
+                <div class="order-section">
+                    <h4>📸 配送照片</h4>
+                    <div class="photo-upload-area" id="photo-upload-area">
+                        <div>📷 拍攝配送照片</div>
+                        <div style="font-size: 12px; color: #666; margin-top: 5px;">點擊拍照或拖拽照片到此處</div>
+                        <button class="upload-btn" onclick="triggerPhotoUpload()">開始拍照</button>
+                        <div class="photo-preview" id="photo-preview"></div>
+                        <input type="file" id="photo-input" accept="image/*" capture="environment" style="display: none;" multiple>
+                    </div>
+                </div>
+                
+                <!-- 問題回報 -->
+                <div class="order-section">
+                    <h4>⚠️ 問題回報</h4>
+                    <div class="problem-report-area">
+                        <div class="problem-categories">
+                            <div class="problem-category" data-problem="找不到地址">找不到地址</div>
+                            <div class="problem-category" data-problem="客戶不在">客戶不在</div>
+                            <div class="problem-category" data-problem="電話無人接聽">電話無人接聽</div>
+                            <div class="problem-category" data-problem="商品問題">商品問題</div>
+                            <div class="problem-category" data-problem="其他">其他</div>
+                        </div>
+                        <textarea class="problem-description" id="problem-description" placeholder="請詳細描述遇到的問題..."></textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 底部按鈕 -->
+            <div class="order-details-footer">
+                <button class="action-btn complete-btn" onclick="completeOrderWithDetails()">
+                    ✅ 完成配送
+                </button>
+                <button class="action-btn report-problem-btn" onclick="submitProblemReport()">
+                    ⚠️ 回報問題
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 路線地圖容器 -->
+    <div id="map-modal" class="map-modal" style="display: none;">
+        <div class="map-modal-content">
+            <div class="map-modal-header">
+                <h3>🗺️ 路線優化地圖</h3>
+                <button class="map-close-btn" onclick="closeMapModal()">&times;</button>
+            </div>
+            <div id="google-maps-container" class="google-maps-container"></div>
+            <div class="map-modal-footer">
+                <p id="map-info">載入中...</p>
+                <!-- 移除外部導航按鈕，使用內嵌地圖 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部橫條購物車 -->
+    <button class="shopping-cart-btn" id="shopping-cart-btn" onclick="toggleShoppingCart()">
+        <div class="cart-left-info">
+            <span class="cart-icon">🛒</span>
+            <span>已選訂單</span>
+            <span class="cart-count" id="cart-count">0</span>
+        </div>
+        <div class="cart-right-action">
+            <span class="cart-total" id="cart-total">NT$0</span>
+            <span>確認接單</span>
+            <span class="cart-action-icon">▶</span>
+        </div>
+    </button>
+    
+    <!-- 購物車面板 -->
+    <div class="shopping-cart-panel" id="shopping-cart-panel">
+        <div class="cart-panel-header">
+            <h3 class="cart-panel-title">🛒 已選擇訂單</h3>
+            <button class="cart-close-btn" onclick="toggleShoppingCart()">×</button>
+        </div>
+        <div class="cart-panel-body" id="cart-panel-body">
+            <div class="cart-empty-state">
+                <div class="cart-empty-icon">🛒</div>
+                <p>尚未選擇任何訂單</p>
+            </div>
+        </div>
+        <div class="cart-panel-footer">
+            <button class="cart-action-btn lock" id="cart-action-btn" onclick="handleCartAction()">
+                🔒 鎖定訂單 (30秒)
+            </button>
+        </div>
+    </div>
+    
+    <!-- 通知容器 -->
+    <div id="notification-container"></div>
+
+    <script>
+        // 全域變數
+        const driverId = <%= driver.id %>;
+        let currentArea = null;
+        let selectedOrders = [];
+        let sortableInstance = null;
+        let googleMap = null;
+        let currentRouteUrl = null;
+        let currentInteractiveUrl = null;
+        let googleMapsLoaded = false;
+        
+        // 新增：訂單鎖定系統變數
+        let isSelectionMode = false;
+        let lockedOrders = [];
+        let lockTimer = null;
+        let lockTimeRemaining = 30;
+        let allAvailableOrders = [];
+        
+        // 新增：導航模式變數
+        let currentMode = 'order'; // 'order' 或 'navigation'
+        let navigationMap = null;
+        let directionsService = null;
+        let directionsRenderer = null;
+        let currentPosition = null;
+        let navOrdersPanel = null;
+        let isNavPanelExpanded = false;
+        
+        // 購物車系統變數
+        let isCartOpen = false;
+        let cartState = 'selection'; // 'selection', 'locked', 'optimized'
+        
+        // 付款方式顯示格式化函數
+        function getPaymentMethodDisplay(paymentMethod, totalAmount) {
+            if (!paymentMethod || paymentMethod === 'cash') {
+                // 貨到付款顯示金額方便外送員收款
+                const amount = totalAmount || 0;
+                return `貨到付款 - NT$ ${amount}`;
+            }
+            
+            switch (paymentMethod.toLowerCase()) {
+                case 'linepay':
+                case 'line_pay':
+                    return 'Line Pay 付款';
+                case 'transfer':
+                case 'bank_transfer':
+                    return '轉帳付款';
+                case 'cash':
+                default:
+                    const amount = totalAmount || 0;
+                    return `貨到付款 - NT$ ${amount}`;
+            }
+        }
+        
+        // Google Maps API 初始化
+        function initGoogleMapsAPI() {
+            googleMapsLoaded = true;
+            console.log('Google Maps API 已載入');
+        }
+
+        // 頁面載入完成
+        document.addEventListener('DOMContentLoaded', function() {
+            initDashboard();
+            loadUnifiedOrderPool(); // 改為載入統一訂單池
+            updateStats();
+            initFullscreenMode(); // 初始化全螢幕模式
+            checkPWAInstallation(); // 檢查PWA安裝狀態
+            
+            // 每30秒更新一次
+            setInterval(() => {
+                loadUnifiedOrderPool();
+                updateStats();
+            }, 30000);
+        });
+
+        // 初始化儀表板
+        function initDashboard() {
+            // 初始化拖拉排序
+            const deliveryList = document.getElementById('my-delivery-list');
+            sortableInstance = Sortable.create(deliveryList, {
+                animation: 200,
+                ghostClass: 'sortable-ghost',
+                chosenClass: 'sortable-chosen',
+                dragClass: 'sortable-drag',
+                onEnd: function(evt) {
+                    // 重新排序我的配送訂單
+                    const newOrder = Array.from(deliveryList.children)
+                        .filter(el => el.dataset.orderId)
+                        .map(el => el.dataset.orderId);
+                    
+                    // 更新本地訂單順序
+                    reorderMyDeliveryOrders(newOrder);
+                    showNotification('訂單順序已更新', 'success');
+                }
+            });
+            
+            // 初始化購物車按鈕狀態
+            updateCartDisplay();
+            updateCartActionButton();
+        }
+
+        // ========== 新的訂單鎖定系統功能 ==========
+        
+        // 載入統一訂單池 - 最終修復版本 (基於緊急版本邏輯)
+        async function loadUnifiedOrderPool() {
+            console.log('🔄 開始載入訂單池（最終修復版）');
+            
+            const container = document.getElementById('unified-orders');
+            if (!container) {
+                console.error('❌ 找不到 unified-orders 容器');
+                return;
+            }
+            
+            // 顯示載入狀態
+            container.innerHTML = '<div class="loading"><div class="loading-spinner"></div>正在載入訂單...</div>';
+            
+            try {
+                console.log('📊 Step 1: 獲取訂單統計');
+                const countResponse = await fetch('/api/driver/order-counts');
+                
+                if (!countResponse.ok) {
+                    throw new Error(`HTTP ${countResponse.status}: ${countResponse.statusText}`);
+                }
+                
+                const countData = await countResponse.json();
+                console.log('✅ 訂單統計:', countData);
+                
+                if (!countData.success) {
+                    throw new Error('訂單統計API返回失敗');
+                }
+                
+                // 更新訂單總數
+                const totalCountElement = document.getElementById('total-available-count');
+                let totalCount = 0;
+                if (countData.counts) {
+                    totalCount = Object.values(countData.counts).reduce((a, b) => a + b, 0);
+                    if (totalCountElement) {
+                        totalCountElement.textContent = totalCount;
+                    }
+                }
+                
+                console.log(`📊 總訂單數: ${totalCount}`);
+                
+                // Step 2: 載入各地區訂單
+                const areas = ['三峽區', '樹林區', '鶯歌區', '土城區', '北大特區'];
+                let allOrders = [];
+                const areaGroups = [];
+                
+                for (const area of areas) {
+                    console.log(`📍 載入 ${area} 訂單`);
+                    container.innerHTML = `<div class="loading"><div class="loading-spinner"></div>載入 ${area} 中...</div>`;
+                    
+                    try {
+                        const areaResponse = await fetch(`/api/driver/area-orders/${encodeURIComponent(area)}`);
+                        
+                        if (areaResponse.ok) {
+                            const areaData = await areaResponse.json();
+                            console.log(`✅ ${area} 回應:`, areaData);
+                            
+                            if (areaData.success && areaData.orders && Array.isArray(areaData.orders)) {
+                                const ordersWithArea = areaData.orders.map(order => ({...order, area}));
+                                allOrders.push(...ordersWithArea);
+                                
+                                if (areaData.orders.length > 0) {
+                                    areaGroups.push({
+                                        area,
+                                        count: areaData.orders.length,
+                                        orders: ordersWithArea
+                                    });
+                                }
+                                
+                                console.log(`✅ ${area}: ${areaData.orders.length} 筆訂單`);
+                            } else {
+                                console.log(`⚠️ ${area}: 無訂單或格式錯誤`);
+                            }
+                        } else {
+                            console.log(`❌ ${area}: HTTP ${areaResponse.status}`);
+                        }
+                    } catch (areaError) {
+                        console.error(`❌ ${area} 錯誤:`, areaError);
+                    }
+                }
+                
+                // 保存到全域變數
+                window.allAvailableOrders = allOrders;
+                
+                console.log(`🎨 渲染 ${allOrders.length} 筆訂單, ${areaGroups.length} 個地區`);
+                
+                // Step 3: 渲染訂單
+                if (areaGroups.length > 0) {
+                    renderUnifiedOrderPool(areaGroups);
+                } else {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">📭</div>
+                            <h3>暫無可接訂單</h3>
+                            <p>目前沒有需要配送的訂單</p>
+                            <button onclick="loadUnifiedOrderPool()" class="btn btn-primary" style="margin-top: 15px;">
+                                🔄 重新載入
+                            </button>
+                        </div>
+                    `;
+                }
+                
+                console.log('🎉 訂單載入完成');
+                
+            } catch (error) {
+                console.error('❌ 載入訂單失敗:', error);
+                
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">⚠️</div>
+                        <h3>載入失敗</h3>
+                        <p>錯誤: ${error.message}</p>
+                        <p style="font-size: 12px; color: #666; margin-top: 10px;">
+                            時間: ${new Date().toLocaleTimeString()}<br>
+                            請嘗試重新載入或聯絡技術支援
+                        </p>
+                        <button onclick="loadUnifiedOrderPool()" class="btn btn-primary" style="margin-top: 15px;">
+                            🔄 重新載入
+                        </button>
+                    </div>
+                `;
+                
+                // 顯示通知
+                if (typeof showNotification === 'function') {
+                    showNotification('載入訂單失敗: ' + error.message, 'error');
+                }
+            }
+        }
+            
+            // 顯示載入狀態並增加用戶反饋
+            container.innerHTML = '<div class="loading"><div class="loading-spinner"></div>載入訂單中...<br><small>正在連接伺服器</small></div>';
+            console.log('✅ 容器已找到，開始載入流程');
+            
+            try {
+                // 添加總體超時機制 - 30秒
+                const loadingTimeout = setTimeout(() => {
+                    throw new Error('載入超時（30秒）');
+                }, 30000);
+                
+                // Step 1: 載入訂單數量（5秒超時）
+                console.log('📊 Step 1: 載入訂單數量...');
+                container.innerHTML = '<div class="loading"><div class="loading-spinner"></div>載入訂單中...<br><small>📊 檢查可用訂單數量</small></div>';
+                
+                const countsPromise = fetch('/api/driver/order-counts')
+                    .then(response => {
+                        console.log('📡 訂單數量API回應狀態:', response.status);
+                        if (!response.ok) {
+                            throw new Error(`訂單數量API錯誤: ${response.status}`);
+                        }
+                        return response.json();
+                    });
+                
+                const countsData = await Promise.race([
+                    countsPromise,
+                    new Promise((_, reject) => 
+                        setTimeout(() => reject(new Error('訂單數量API超時')), 5000)
+                    )
+                ]);
+                
+                console.log('✅ 訂單數量回應:', countsData);
+                
+                if (!countsData.success) {
+                    throw new Error('訂單數量API回應失敗');
+                }
+                
+                // Step 2: 簡化地區訂單載入（避免Promise.allSettled）
+                console.log('📍 Step 2: 載入各地區訂單（簡化版）...');
+                container.innerHTML = '<div class="loading"><div class="loading-spinner"></div>載入訂單中...<br><small>📍 正在載入各地區訂單</small></div>';
+                
+                const areas = ['三峽區', '樹林區', '鶯歌區', '土城區', '北大特區'];
+                const areaGroups = [];
+                let totalCount = 0;
+                allAvailableOrders = [];
+                
+                // 改為順序載入，避免併發問題
+                for (const area of areas) {
+                    try {
+                        console.log(`  🔍 載入 ${area}...`);
+                        // 實時更新載入狀態
+                        container.innerHTML = `<div class="loading"><div class="loading-spinner"></div>載入訂單中...<br><small>📍 正在載入 ${area}</small></div>`;
+                        
+                        // 單個地區5秒超時
+                        const areaPromise = fetch(`/api/driver/area-orders/${encodeURIComponent(area)}`)
+                            .then(response => response.ok ? response.json() : { success: false });
+                        
+                        const areaData = await Promise.race([
+                            areaPromise,
+                            new Promise((_, reject) => 
+                                setTimeout(() => reject(new Error(`${area}載入超時`)), 5000)
+                            )
+                        ]);
+                        
+                        if (areaData.success && areaData.orders && Array.isArray(areaData.orders)) {
+                            if (areaData.orders.length > 0) {
+                                totalCount += areaData.orders.length;
+                                
+                                // 為每個訂單添加地區標記
+                                const ordersWithArea = areaData.orders.map(order => ({
+                                    ...order,
+                                    area: area
+                                }));
+                                
+                                allAvailableOrders.push(...ordersWithArea);
+                                areaGroups.push({
+                                    area,
+                                    count: areaData.orders.length,
+                                    orders: ordersWithArea
+                                });
+                                
+                                console.log(`  ✅ ${area}: ${areaData.orders.length}筆訂單`);
+                            } else {
+                                console.log(`  📭 ${area}: 無訂單`);
+                            }
+                        } else {
+                            console.warn(`  ⚠️ ${area}: 載入失敗`);
+                        }
+                    } catch (err) {
+                        console.error(`  ❌ ${area}載入錯誤:`, err.message);
+                        // 繼續處理下一個地區，不中斷整個流程
+                    }
+                }
+                
+                clearTimeout(loadingTimeout);
+                
+                // Step 3: 渲染結果
+                console.log('🎨 Step 3: 渲染結果...');
+                console.log(`📊 總計載入 ${totalCount} 筆訂單，${areaGroups.length} 個地區`);
+                container.innerHTML = '<div class="loading"><div class="loading-spinner"></div>載入訂單中...<br><small>🎨 正在渲染訂單列表</small></div>';
+                
+                // 更新訂單總數
+                const totalCountElement = document.getElementById('total-available-count');
+                if (totalCountElement) {
+                    totalCountElement.textContent = totalCount;
+                }
+                
+                // 渲染訂單
+                renderUnifiedOrderPool(areaGroups);
+                
+                console.log('🎉 === 訂單池載入完成 ===');
+                console.log('🕐 完成時間:', new Date().toLocaleTimeString());
+                
+            } catch (error) {
+                console.error('❌ === 載入訂單池失敗 ===', error);
+                console.error('🕐 失敗時間:', new Date().toLocaleTimeString());
+                console.error('📱 用戶代理:', navigator.userAgent);
+                console.error('🌐 網路狀態:', navigator.onLine ? '已連線' : '離線');
+                
+                // 顯示詳細錯誤狀態和重試按鈕
+                if (container) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">⚠️</div>
+                            <h3>載入失敗</h3>
+                            <p><strong>錯誤:</strong> ${error.message}</p>
+                            <p><strong>時間:</strong> ${new Date().toLocaleTimeString()}</p>
+                            <p><strong>網路:</strong> ${navigator.onLine ? '已連線' : '離線'}</p>
+                            <p style="font-size: 12px; color: #666; margin-top: 10px;">
+                                診斷提示：請檢查網路連線，或聯絡技術支援
+                            </p>
+                            <button onclick="loadUnifiedOrderPool()" class="btn btn-primary" style="margin-top: 15px;">
+                                🔄 重新載入
+                            </button>
+                        </div>
+                    `;
+                }
+                
+                // 通知用戶並顯示診斷信息
+                showNotification('載入訂單失敗: ' + error.message + ' (時間: ' + new Date().toLocaleTimeString() + ')', 'error');
+            }
+        }
+        
+        // 渲染統一訂單池 - 修復版本
+        function renderUnifiedOrderPool(areaGroups) {
+            console.log('🎨 === 開始渲染訂單池 ===');
+            console.log('📊 接收到的地區數據:', areaGroups);
+            
+            // 確保容器存在
+            const container = document.getElementById('unified-orders');
+            if (!container) {
+                console.error('❌ 找不到 unified-orders 容器');
+                return;
+            }
+            
+            try {
+                // 檢查是否有數據
+                if (!areaGroups || !Array.isArray(areaGroups) || areaGroups.length === 0) {
+                    console.log('📭 沒有訂單數據或數據格式錯誤');
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">📭</div>
+                            <h3>目前沒有可接的訂單</h3>
+                            <p>請稍後再試或聯繫管理員</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                console.log(`✅ 準備渲染 ${areaGroups.length} 個地區的訂單`);
+                
+                // 安全渲染HTML，使用錯誤捕獲
+                let htmlContent = '';
+                
+                for (let i = 0; i < areaGroups.length; i++) {
+                    const group = areaGroups[i];
+                    try {
+                        if (!group || !group.area || !Array.isArray(group.orders)) {
+                            console.warn(`⚠️ 地區 ${i} 數據格式錯誤:`, group);
+                            continue;
+                        }
+                        
+                        // 渲染地區標題
+                        htmlContent += `
+                            <div class="area-group">
+                                <div class="area-group-header">
+                                    <h4>📍 ${group.area}</h4>
+                                    <span class="area-order-count">${group.count || group.orders.length} 筆訂單</span>
+                                </div>
+                                <div class="area-orders">`;
+                        
+                        // 渲染每個訂單
+                        for (let j = 0; j < group.orders.length; j++) {
+                            const order = group.orders[j];
+                            try {
+                                if (!order || !order.id) {
+                                    console.warn(`⚠️ ${group.area} 訂單 ${j} 數據錯誤:`, order);
+                                    continue;
+                                }
+                                
+                                const isSelected = selectedOrders.includes(order.id);
+                                const isLocked = lockedOrders.includes(order.id);
+                                const itemCount = order.items && Array.isArray(order.items) ? order.items.length : 1;
+                                
+                                htmlContent += `
+                                    <div class="order-card ${isSelected ? 'selected' : ''} ${isLocked ? 'locked' : ''}" 
+                                         data-order-id="${order.id}" 
+                                         onclick="${isSelectionMode ? `toggleOrderSelection(${order.id})` : 'void(0)'}">
+                                        <div style="display: flex; gap: 10px;">
+                                            <div class="order-checkbox">
+                                                <input type="checkbox" 
+                                                       id="order-check-area-${order.id}" 
+                                                       class="order-select-checkbox"
+                                                       ${isSelected ? 'checked' : ''}
+                                                       onclick="event.stopPropagation(); toggleOrderSelection(${order.id})">
+                                                <label for="order-check-area-${order.id}" class="checkbox-label"></label>
+                                            </div>
+                                            <div style="flex: 1;">
+                                                <div class="order-header">
+                                                    <span class="order-number">#${order.id}</span>
+                                                    <span class="order-area">${group.area}</span>
+                                                </div>
+                                                <div class="order-customer">
+                                                    👤 ${order.customer_name || '未知客戶'} | 📞 ${order.customer_phone || '無電話'}
+                                                </div>
+                                                <div class="order-address">
+                                                    📍 ${order.address || '地址未提供'}
+                                                </div>
+                                                <div class="order-items" style="margin-top: 8px; font-size: 13px; color: #666;">
+                                                    🛒 ${itemCount} 項商品 | 
+                                                    💳 ${getPaymentMethodDisplay(order.payment_method, order.total_amount)}
+                                                </div>
+                                                <div class="order-amount" style="margin-top: 5px; font-weight: 600; color: #e74c3c;">
+                                                    💰 NT$ ${order.total_amount || 0}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            } catch (orderError) {
+                                console.error(`❌ 渲染訂單失敗 ${group.area}[${j}]:`, orderError, order);
+                            }
+                        }
+                        
+                        htmlContent += `
+                                </div>
+                            </div>`;
+                        
+                    } catch (groupError) {
+                        console.error(`❌ 渲染地區失敗 ${i}:`, groupError, group);
+                    }
+                }
+                
+                // 安全設置HTML內容
+                if (htmlContent.trim()) {
+                    container.innerHTML = htmlContent;
+                    console.log('✅ 訂單池渲染完成');
+                } else {
+                    console.warn('⚠️ 沒有成功渲染任何內容');
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">⚠️</div>
+                            <h3>渲染失敗</h3>
+                            <p>無法正確顯示訂單內容</p>
+                        </div>
+                    `;
+                }
+                
+            } catch (renderError) {
+                console.error('❌ 渲染訂單池發生錯誤:', renderError);
+                console.error('錯誤堆棧:', renderError.stack);
+                
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">❌</div>
+                        <h3>渲染錯誤</h3>
+                        <p>錯誤: ${renderError.message}</p>
+                        <button onclick="loadUnifiedOrderPool()" class="btn btn-primary" style="margin-top: 15px;">
+                            🔄 重新載入
+                        </button>
+                    </div>
+                `;
+            }
+        }
+        
+        // 進入選擇模式
+        function enterSelectionMode() {
+            isSelectionMode = true;
+            selectedOrders = [];
+            
+            // 更新UI狀態
+            document.getElementById('select-btn').style.display = 'none';
+            document.getElementById('lock-action-group').style.display = 'flex';
+            
+            // 更新訂單卡片點擊狀態
+            document.querySelectorAll('.order-card').forEach(card => {
+                card.style.cursor = 'pointer';
+            });
+            
+            showNotification('已進入選擇模式，點擊訂單進行選擇', 'info');
+        }
+        
+        // 切換訂單選擇 - 優化狀態管理
+        function toggleOrderSelection(orderId) {
+            // 檢查訂單是否已鎖定，如果是則不允許修改
+            if (lockedOrders.includes(orderId)) {
+                showNotification('此訂單已鎖定，無法修改選擇狀態', 'warning');
+                return;
+            }
+            
+            const orderCard = document.querySelector(`[data-order-id="${orderId}"]`);
+            const checkbox = document.getElementById(`order-check-area-${orderId}`) || document.getElementById(`order-check-${orderId}`);
+            const isSelected = selectedOrders.includes(orderId);
+            
+            // 如果不在選擇模式且沒有選中項目，自動進入選擇模式
+            if (!isSelectionMode && selectedOrders.length === 0) {
+                enterSelectionMode();
+            }
+            
+            if (isSelected) {
+                selectedOrders = selectedOrders.filter(id => id !== orderId);
+                if (orderCard) orderCard.classList.remove('selected');
+                if (checkbox) checkbox.checked = false;
+            } else {
+                selectedOrders.push(orderId);
+                if (orderCard) orderCard.classList.add('selected');
+                if (checkbox) checkbox.checked = true;
+            }
+            
+            // 批次更新UI避免競爭條件
+            setTimeout(() => {
+                updateConfirmButton();
+                updateShoppingCart();
+                updateCartDisplay(); // 更新底部購物車橫條
+            }, 0);
+        }
+        
+        // 更新確認接單按鈕狀態
+        function updateConfirmButton() {
+            const confirmContainer = document.getElementById('confirm-orders-container');
+            const confirmCount = document.getElementById('confirm-count');
+            
+            if (selectedOrders.length > 0) {
+                confirmContainer.style.display = 'block';
+                confirmCount.textContent = selectedOrders.length;
+            } else {
+                confirmContainer.style.display = 'none';
+            }
+        }
+        
+        // 確認接單
+        async function confirmSelectedOrders() {
+            if (selectedOrders.length === 0) return;
+            
+            const confirmText = `確定要接取 ${selectedOrders.length} 筆訂單嗎？`;
+            if (!confirm(confirmText)) return;
+            
+            try {
+                showNotification('正在處理訂單...', 'info');
+                
+                const response = await fetch('/api/driver/batch-accept-orders', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        orderIds: selectedOrders
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification(`✅ 成功接取 ${selectedOrders.length} 筆訂單！`, 'success');
+                    
+                    // 清空選擇
+                    selectedOrders = [];
+                    updateConfirmButton();
+                    
+                    // 重新載入數據
+                    await loadUnifiedOrders();
+                    await loadMyDeliveryOrders();
+                    
+                    // 切換到導航模式
+                    if (myDeliveryOrders.length > 0) {
+                        setTimeout(() => {
+                            switchToNavigationMode();
+                        }, 1500);
+                    }
+                } else {
+                    showNotification(`❌ 接單失敗: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                console.error('接單錯誤:', error);
+                showNotification('❌ 接單時發生錯誤', 'error');
+            }
+        }
+        
+        // 鎖定選中的訂單
+        async function lockSelectedOrders() {
+            if (selectedOrders.length === 0) {
+                showNotification('請先選擇要鎖定的訂單', 'warning');
+                return;
+            }
+            
+            try {
+                // 調用後端API鎖定訂單
+                const response = await fetch('/api/driver/lock-orders', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        orderIds: selectedOrders,
+                        lockDuration: 30
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    lockedOrders = [...selectedOrders];
+                    
+                    // 啟動30秒倒計時
+                    startLockTimer();
+                    
+                    // 更新UI狀態
+                    updateLockUI();
+                    
+                    // 視覺反饋：將選中的訂單標記為鎖定狀態
+                    selectedOrders.forEach(orderId => {
+                        const card = document.querySelector(`[data-order-id="${orderId}"]`);
+                        if (card) {
+                            card.classList.add('locked');
+                        }
+                    });
+                    
+                    showNotification(`🔒 已鎖定 ${selectedOrders.length} 筆訂單，30秒內請完成操作`, 'success');
+                } else {
+                    showNotification('鎖定失敗：' + result.message, 'error');
+                }
+                
+            } catch (error) {
+                console.error('鎖定訂單失敗:', error);
+                showNotification('鎖定失敗，請檢查網路連線', 'error');
+            }
+        }
+        
+        // 更新鎖定狀態UI
+        function updateLockUI() {
+            document.getElementById('lock-btn').style.display = 'none';
+            document.getElementById('optimize-btn').style.display = 'inline-block';
+            document.getElementById('cancel-lock-btn').style.display = 'inline-block';
+        }
+        
+        // 啟動鎖定計時器 - 統一版本
+        function startLockTimer() {
+            // 清除任何現有的計時器避免重複
+            if (lockTimer) {
+                clearInterval(lockTimer);
+                lockTimer = null;
+            }
+            
+            lockTimeRemaining = 30;
+            
+            lockTimer = setInterval(() => {
+                lockTimeRemaining--;
+                
+                // 更新鎖定卡片的倒計時顯示
+                updateLockTimeDisplay();
+                
+                // 更新購物車按鈕顯示
+                const btn = document.getElementById('cart-action-btn');
+                if (btn && cartState === 'locked') {
+                    btn.innerHTML = `🔒 優化路線 (${lockTimeRemaining}秒)`;
+                }
+                
+                if (lockTimeRemaining <= 0) {
+                    // 時間到，自動解鎖 - 統一清理邏輯
+                    autoUnlockOrders();
+                }
+            }, 1000);
+        }
+        
+        // 更新鎖定時間顯示
+        function updateLockTimeDisplay() {
+            const lockCards = document.querySelectorAll('.order-card.locked');
+            lockCards.forEach(card => {
+                // 更新::after的內容（透過CSS變數）
+                card.style.setProperty('--lock-time', `"🔒 ${lockTimeRemaining}秒"`);
+            });
+        }
+        
+        // 自動解鎖訂單 - 統一清理邏輯
+        function autoUnlockOrders() {
+            clearInterval(lockTimer);
+            lockTimer = null;
+            
+            // 清除鎖定狀態
+            lockedOrders.forEach(orderId => {
+                const card = document.querySelector(`[data-order-id="${orderId}"]`);
+                if (card) {
+                    card.classList.remove('locked', 'selected');
+                }
+                // 同時從選中列表中移除
+                selectedOrders = selectedOrders.filter(id => id !== orderId);
+            });
+            
+            // 重置所有相關狀態
+            lockedOrders = [];
+            selectedOrders = [];
+            isSelectionMode = false;
+            cartState = 'selection';
+            
+            // 恢復初始UI狀態
+            const selectBtn = document.getElementById('select-btn');
+            const lockActionGroup = document.getElementById('lock-action-group');
+            if (selectBtn) selectBtn.style.display = 'inline-block';
+            if (lockActionGroup) lockActionGroup.style.display = 'none';
+            
+            // 更新購物車狀態
+            updateCartActionButton();
+            updateShoppingCart();
+            
+            showNotification('⏰ 鎖定時間已到，訂單已自動釋放', 'warning');
+            
+            // 重新載入訂單池
+            loadUnifiedOrderPool();
+        }
+        
+        // 取消鎖定 - 使用統一清理邏輯
+        async function cancelLock() {
+            try {
+                // 調用後端API釋放鎖定
+                const response = await fetch('/api/driver/unlock-orders', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        orderIds: lockedOrders
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // 使用統一的解鎖邏輯
+                    autoUnlockOrders();
+                    showNotification('✅ 鎖定已取消，訂單回到可選狀態', 'success');
+                } else {
+                    showNotification('取消鎖定失敗：' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error('取消鎖定失敗:', error);
+                showNotification('取消鎖定失敗，請重試', 'error');
+                // 即使API失敗，也進行本地狀態清理
+                autoUnlockOrders();
+            }
+        }
+        
+        // 路線優化並接取訂單
+        async function optimizeAndAccept() {
+            if (lockedOrders.length === 0) {
+                showNotification('沒有鎖定的訂單可以優化', 'warning');
+                return;
+            }
+            
+            if (lockTimer) {
+                clearInterval(lockTimer);
+                lockTimer = null;
+            }
+            
+            showNotification('🧭 正在優化路線並接取訂單...', 'info');
+            
+            try {
+                // 先接取訂單
+                const acceptResponse = await fetch('/api/driver/batch-accept-orders', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        orderIds: lockedOrders
+                    })
+                });
+                
+                const acceptResult = await acceptResponse.json();
+                
+                if (acceptResult.success) {
+                    // 接取成功，進行路線優化
+                    const optimizeResponse = await fetch('/api/driver/optimize-route', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            orderIds: lockedOrders
+                        })
+                    });
+                    
+                    const optimizeResult = await optimizeResponse.json();
+                    
+                    if (optimizeResult.success) {
+                        showNotification(`🎉 成功接取 ${lockedOrders.length} 筆訂單並完成路線優化！預計節省 ${optimizeResult.timeSaved || 10} 分鐘`, 'success');
+                        
+                        // 清除狀態
+                        lockedOrders = [];
+                        selectedOrders = [];
+                        isSelectionMode = false;
+                        
+                        // 恢復UI
+                        document.getElementById('select-btn').style.display = 'inline-block';
+                        document.getElementById('lock-action-group').style.display = 'none';
+                        
+                        // 重新載入數據
+                        await Promise.all([
+                            loadUnifiedOrderPool(),
+                            loadMyDeliveryOrders()
+                        ]);
+                        
+                        // 顯示路線地圖
+                        if (optimizeResult.routeUrl) {
+                            setTimeout(() => {
+                                showRouteMap(optimizeResult.optimizedOrders, optimizeResult.totalDistance, optimizeResult.timeSaved);
+                            }, 1500);
+                        }
+                    } else {
+                        showNotification('路線優化失敗：' + optimizeResult.message, 'error');
+                    }
+                } else {
+                    showNotification('接取訂單失敗：' + acceptResult.message, 'error');
+                }
+                
+            } catch (error) {
+                console.error('優化並接取失敗:', error);
+                showNotification('操作失敗，請檢查網路連線', 'error');
+            }
+        }
+
+        // 載入地區訂單數量
+        async function loadOrderCounts() {
+            try {
+                const response = await fetch('/api/driver/order-counts');
+                const data = await response.json();
+                
+                // 更新各地區數量
+                Object.entries(data.counts).forEach(([area, count]) => {
+                    const countElement = document.getElementById(`count-${area}`);
+                    if (countElement) {
+                        countElement.textContent = count;
+                    }
+                });
+            } catch (error) {
+                console.error('載入訂單數量失敗:', error);
+            }
+        }
+
+        // 載入特定地區的訂單
+        async function loadAreaOrders(area) {
+            const container = document.getElementById('area-orders');
+            container.innerHTML = '<div class="loading"><div class="loading-spinner"></div>載入中...</div>';
+            
+            try {
+                // 先嘗試 GET 方式
+                let response = await fetch(`/api/driver/area-orders/${encodeURIComponent(area)}`);
+                
+                // 如果 GET 失敗，改用 POST 方式
+                if (!response.ok) {
+                    console.log(`⚠️ ${area} GET 請求失敗，嘗試 POST 方式...`);
+                    response = await fetch('/api/driver/area-orders-by-name', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ area: area })
+                    });
+                }
+                
+                const data = await response.json();
+                
+                if (data.orders.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">📭</div>
+                            <p>${area} 目前沒有可接的訂單</p>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = data.orders.map(order => `
+                        <div class="order-card" data-order-id="${order.id}" onclick="toggleOrderSelection(${order.id})">
+                            <div style="display: flex; gap: 10px;">
+                                <div class="order-checkbox">
+                                    <input type="checkbox" 
+                                           id="order-check-${order.id}" 
+                                           class="order-select-checkbox"
+                                           ${selectedOrders.includes(order.id) ? 'checked' : ''}
+                                           onclick="event.stopPropagation(); toggleOrderSelection(${order.id})">
+                                    <label for="order-check-${order.id}" class="checkbox-label"></label>
+                                </div>
+                                <div style="flex: 1;">
+                                    <div class="order-header">
+                                        <span class="order-number">#${order.id}</span>
+                                        <span class="order-area">${area}</span>
+                                    </div>
+                                    <div class="order-customer">
+                                        👤 ${order.customer_name} | 📞 ${order.customer_phone}
+                                    </div>
+                                    <div class="order-address">
+                                        📍 ${order.address}
+                                    </div>
+                                    <div class="order-items" style="margin-top: 8px; font-size: 13px; color: #666;">
+                                        🛒 ${order.items ? order.items.length : 1} 項商品 | 
+                                        💳 ${getPaymentMethodDisplay(order.payment_method, order.total_amount)}
+                                    </div>
+                                    <div class="order-amount" style="margin-top: 5px; font-weight: 600; color: #e74c3c;">
+                                        💰 NT$ ${order.total_amount || 0}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+                
+                updateAcceptButton();
+            } catch (error) {
+                console.error('載入地區訂單失敗:', error);
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">❌</div>
+                        <p>載入失敗，請重試</p>
+                    </div>
+                `;
+            }
+        }
+
+        // 更新購物車和按鈕狀態 (移除重複的toggleOrderSelection函數)
+        function updateShoppingCartAndButtons() {
+            updateShoppingCart();
+        }
+        
+        // 購物車系統函數
+        function updateShoppingCart() {
+            const cartBtn = document.getElementById('shopping-cart-btn');
+            const cartBadge = document.getElementById('cart-badge');
+            const cartBody = document.getElementById('cart-panel-body');
+            
+            // 更新購物車按鈕顯示
+            if (selectedOrders.length > 0) {
+                cartBtn.classList.add('show');
+                cartBadge.textContent = selectedOrders.length;
+            } else {
+                cartBtn.classList.remove('show');
+                isCartOpen = false;
+                document.getElementById('shopping-cart-panel').classList.remove('show');
+            }
+            
+            // 更新購物車內容
+            if (selectedOrders.length === 0) {
+                cartBody.innerHTML = `
+                    <div class="cart-empty-state">
+                        <div class="cart-empty-icon">🛒</div>
+                        <p>尚未選擇任何訂單</p>
+                    </div>
+                `;
+            } else {
+                const selectedOrdersData = allAvailableOrders.filter(order => 
+                    selectedOrders.includes(order.id)
+                );
+                
+                cartBody.innerHTML = selectedOrdersData.map(order => `
+                    <div class="cart-order-item" data-cart-order="${order.id}">
+                        <button class="cart-remove-btn" onclick="removeFromCart(${order.id})">×</button>
+                        <div style="margin-right: 30px;">
+                            <div style="font-weight: bold; margin-bottom: 5px;">
+                                訂單 #${order.id}
+                            </div>
+                            <div style="font-size: 14px; color: #666;">
+                                ${order.customerName} - ${order.items[0]?.name || '蔬菜'}
+                            </div>
+                            <div style="font-size: 14px; color: #333; margin-top: 5px;">
+                                📍 ${order.deliveryAddress}
+                            </div>
+                            <div style="font-size: 14px; color: #667eea; margin-top: 5px;">
+                                💳 ${getPaymentMethodDisplay(order.payment_method, order.total_amount)}
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            // 更新按鈕狀態
+            updateCartActionButton();
+        }
+        
+        function toggleShoppingCart() {
+            const panel = document.getElementById('shopping-cart-panel');
+            isCartOpen = !isCartOpen;
+            
+            if (isCartOpen) {
+                panel.classList.add('show');
+            } else {
+                panel.classList.remove('show');
+            }
+        }
+        
+        function removeFromCart(orderId) {
+            // 從購物車移除訂單
+            toggleOrderSelection(orderId);
+        }
+        
+        function updateCartActionButton() {
+            const btn = document.getElementById('cart-action-btn');
+            
+            if (!btn) return;
+            
+            switch(cartState) {
+                case 'selection':
+                    btn.className = 'cart-action-btn lock';
+                    btn.innerHTML = '🔒 鎖定訂單 (30秒)';
+                    btn.onclick = handleCartAction;
+                    btn.disabled = selectedOrders.length === 0;
+                    break;
+                case 'locked':
+                    btn.className = 'cart-action-btn optimize';
+                    btn.innerHTML = '🧭 優化配送路線';
+                    btn.onclick = handleCartAction;
+                    btn.disabled = false;
+                    break;
+                case 'optimized':
+                    btn.className = 'cart-action-btn start';
+                    btn.innerHTML = '🚀 開始配送';
+                    btn.onclick = handleCartAction;
+                    btn.disabled = false;
+                    break;
+            }
+        }
+        
+        async function handleCartAction() {
+            switch(cartState) {
+                case 'selection':
+                    await lockSelectedOrders();
+                    break;
+                case 'locked':
+                    await optimizeLockedOrders();
+                    break;
+                case 'optimized':
+                    await startDeliveryFromCart();
+                    break;
+            }
+        }
+        
+        async function lockSelectedOrders() {
+            if (selectedOrders.length === 0) {
+                showNotification('請先選擇要鎖定的訂單', 'warning');
+                return;
+            }
+            
+            // 前端示範模式：直接鎖定訂單
+            try {
+                // 標記訂單為鎖定狀態
+                selectedOrders.forEach(orderId => {
+                    const orderCard = document.querySelector(`[data-order-id="${orderId}"]`);
+                    if (orderCard) {
+                        orderCard.classList.add('locked');
+                    }
+                });
+                
+                lockedOrders = [...selectedOrders];
+                cartState = 'locked';
+                updateCartActionButton();
+                startLockTimer();
+                showNotification(`🔒 成功鎖定 ${lockedOrders.length} 筆訂單（30秒保護時間）`, 'success');
+                
+            } catch (error) {
+                console.error('鎖定訂單失敗:', error);
+                showNotification('鎖定訂單失敗，請重試', 'error');
+            }
+        }
+        
+        async function optimizeLockedOrders() {
+            if (lockedOrders.length === 0) {
+                showNotification('沒有鎖定的訂單可以優化', 'warning');
+                return;
+            }
+            
+            showNotification('🧭 正在優化配送路線...', 'info');
+            
+            try {
+                // 前端示範模式：模擬路線優化
+                await new Promise(resolve => setTimeout(resolve, 1500)); // 模擬API調用時間
+                
+                // 收集地址資訊
+                const addresses = [];
+                lockedOrders.forEach(orderId => {
+                    const orderCard = document.querySelector(`[data-order-id="${orderId}"]`);
+                    if (orderCard) {
+                        const address = orderCard.querySelector('.order-address')?.textContent?.replace('📍 ', '') || '未知地址';
+                        addresses.push(address);
+                    }
+                });
+                
+                cartState = 'optimized';
+                updateCartActionButton();
+                
+                // 停止鎖定計時器
+                if (lockTimer) {
+                    clearInterval(lockTimer);
+                    lockTimer = null;
+                }
+                
+                // 更新購物車面板顯示路線資訊
+                const cartBody = document.getElementById('cart-panel-body');
+                if (cartBody) {
+                    cartBody.innerHTML = `
+                        <div style="padding: 15px;">
+                            <h4 style="margin: 0 0 15px 0; color: #2c3e50;">🧭 配送路線優化結果</h4>
+                            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #3498db;">
+                                ${addresses.map((addr, i) => `<div style="margin: 8px 0; display: flex; align-items: center;"><span style="background: #3498db; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; margin-right: 10px;">${i+1}</span>${addr}</div>`).join('')}
+                            </div>
+                            <div style="margin-top: 15px; font-size: 14px; color: #666;">
+                                <div>📊 預估總時間：35分鐘</div>
+                                <div>📏 預估距離：8.3公里</div>
+                                <div>⚡ 節省時間：12分鐘</div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                showNotification(`✅ 路線優化完成！預計節省 12 分鐘`, 'success');
+                
+            } catch (error) {
+                console.error('優化路線失敗:', error);
+                showNotification('優化路線失敗，請重試', 'error');
+            }
+        }
+        
+        async function startDeliveryFromCart() {
+            if (selectedOrders.length === 0) {
+                showNotification('請先選擇訂單', 'warning');
+                return;
+            }
+            
+            // 關閉購物車
+            toggleShoppingCart();
+            
+            // 切換到導航模式
+            switchToNavigationMode();
+        }
+        
+        // 使用統一的 startLockTimer 函數 (已在上方定義)
+        
+        async function cancelLockFromCart() {
+            // 使用統一的解鎖邏輯
+            autoUnlockOrders();
+        }
+
+        // 接受選中的訂單
+        async function acceptSelectedOrders() {
+            if (selectedOrders.length === 0) return;
+            
+            const confirmText = `確定要接取 ${selectedOrders.length} 筆訂單嗎？`;
+            if (!confirm(confirmText)) return;
+            
+            try {
+                const response = await fetch('/api/driver/batch-accept-orders', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        orderIds: selectedOrders
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification(`✅ 成功接取 ${selectedOrders.length} 筆訂單！`, 'success');
+                    selectedOrders = [];
+                    
+                    // 重新載入數據
+                    await Promise.all([
+                        loadAreaOrders(currentArea),
+                        loadMyDeliveryOrders(),
+                        loadOrderCounts()
+                    ]);
+                } else {
+                    showNotification('接取訂單失敗：' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error('接取訂單失敗:', error);
+                showNotification('接取訂單失敗，請檢查網路連線', 'error');
+            }
+        }
+
+        // 全螢幕模式功能
+        function initFullscreenMode() {
+            // 自動觸發全螢幕（在用戶首次點擊時）
+            let fullscreenTriggered = false;
+            document.addEventListener('click', function() {
+                if (!fullscreenTriggered && !document.fullscreenElement) {
+                    fullscreenTriggered = true;
+                    enterFullscreen();
+                }
+            }, { once: true });
+
+            // 監聽全螢幕變化
+            document.addEventListener('fullscreenchange', handleFullscreenChange);
+            document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+            document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+            document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+        }
+
+        function enterFullscreen() {
+            const elem = document.documentElement;
+            
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen().catch(err => console.log('全螢幕請求失敗:', err));
+            } else if (elem.webkitRequestFullscreen) {
+                elem.webkitRequestFullscreen();
+            } else if (elem.mozRequestFullScreen) {
+                elem.mozRequestFullScreen();
+            } else if (elem.msRequestFullscreen) {
+                elem.msRequestFullscreen();
+            }
+            
+            // iOS Safari 特殊處理
+            if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+                document.body.style.position = 'fixed';
+                document.body.style.width = '100%';
+                document.body.style.height = '100%';
+                window.scrollTo(0, 1);
+            }
+        }
+
+        function exitFullscreen() {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            } else if (document.mozCancelFullScreen) {
+                document.mozCancelFullScreen();
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
+            }
+        }
+
+        function handleFullscreenChange() {
+            const isFullscreen = document.fullscreenElement || 
+                                document.webkitFullscreenElement ||
+                                document.mozFullScreenElement ||
+                                document.msFullscreenElement;
+            
+            if (isFullscreen) {
+                document.body.classList.add('fullscreen-mode');
+                console.log('進入全螢幕模式');
+            } else {
+                document.body.classList.remove('fullscreen-mode');
+                console.log('退出全螢幕模式');
+            }
+        }
+
+        // PWA 安裝提示
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            showInstallPrompt();
+        });
+
+        function showInstallPrompt() {
+            // 顯示安裝提示按鈕
+            const installBtn = document.createElement('button');
+            installBtn.id = 'install-pwa-btn';
+            installBtn.innerHTML = '📱 安裝為App';
+            installBtn.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                padding: 12px 24px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border: none;
+                border-radius: 25px;
+                font-size: 16px;
+                font-weight: bold;
+                cursor: pointer;
+                z-index: 9999;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            `;
+            
+            document.body.appendChild(installBtn);
+            
+            installBtn.addEventListener('click', async () => {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    console.log(`用戶選擇: ${outcome}`);
+                    if (outcome === 'accepted') {
+                        installBtn.remove();
+                    }
+                    deferredPrompt = null;
+                }
+            });
+        }
+
+        function checkPWAInstallation() {
+            // 檢查是否已安裝為PWA
+            if (window.matchMedia('(display-mode: standalone)').matches || 
+                window.matchMedia('(display-mode: fullscreen)').matches ||
+                window.navigator.standalone === true) {
+                console.log('已安裝為PWA');
+                document.body.classList.add('pwa-installed');
+                // 如果是PWA模式，自動進入全螢幕
+                enterFullscreen();
+            }
+        }
+
+
+
+
+        // 完成配送
+        async function completeDelivery(orderId) {
+            if (!confirm('確定已完成這筆訂單的配送嗎？\n系統將自動發送通知給客戶。')) return;
+            
+            try {
+                const response = await fetch(`/api/driver/complete-order/${orderId}`, {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification('🎉 配送完成！客戶已收到通知', 'success');
+                    
+                    // 重新載入數據
+                    await Promise.all([
+                        loadMyDeliveryOrders(),
+                        updateStats()
+                    ]);
+                } else {
+                    showNotification('完成失敗：' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error('完成配送失敗:', error);
+                showNotification('操作失敗，請檢查網路連線', 'error');
+            }
+        }
+
+
+
+
+        // 更新統計數據
+        async function updateStats() {
+            try {
+                const response = await fetch('/api/driver/stats');
+                const data = await response.json();
+                
+                // 更新模態框中的統計數據
+                if (document.getElementById('modal-today-completed')) {
+                    document.getElementById('modal-today-completed').textContent = data.todayCompleted || 0;
+                    document.getElementById('modal-today-earnings').textContent = '$' + (data.todayEarnings || 0);
+                    document.getElementById('modal-total-orders').textContent = data.totalOrders || 0;
+                    document.getElementById('modal-success-rate').textContent = (data.successRate || 0) + '%';
+                }
+                document.getElementById('total-earnings').textContent = '$' + (data.todayEarnings || 0);
+            } catch (error) {
+                console.error('更新統計失敗:', error);
+            }
+        }
+
+        // 工具函數 - 顯示付款方式
+        function getPaymentMethodDisplay(paymentMethod, totalAmount) {
+            const method = paymentMethod || 'cash'; // 預設為貨到付款
+            switch(method.toLowerCase()) {
+                case 'linepay':
+                case 'line_pay':
+                    return 'Line Pay 付款';
+                case 'transfer':
+                case 'bank_transfer':
+                    return '轉帳付款';
+                case 'cash':
+                case 'cod':
+                default:
+                    return `貨到付款 - NT$ ${totalAmount || 0}`;
+            }
+        }
+
+        // 工具函數 - 從地址獲取地區
+        function getAreaFromAddress(address) {
+            if (address.includes('三峽')) return '三峽區';
+            if (address.includes('北大')) return '北大特區';
+            if (address.includes('樹林')) return '樹林區';
+            if (address.includes('鶯歌')) return '鶯歌區';
+            if (address.includes('土城')) return '土城區';
+            return '其他區域';
+        }
+
+        // 顯示通知
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            
+            document.getElementById('notification-container').appendChild(notification);
+            
+            setTimeout(() => notification.classList.add('show'), 100);
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        // ========== Google Maps 地圖功能 ==========
+
+        // 顯示路線地圖
+        function showRouteMap(orders, totalDistance, timeSaved) {
+            document.getElementById('map-modal').style.display = 'flex';
+            
+            // 檢查Google Maps API是否載入
+            if (typeof google === 'undefined' || !googleMapsLoaded) {
+                console.warn('Google Maps API not loaded, fallback to external link');
+                document.getElementById('google-maps-container').innerHTML = `
+                    <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; color: #666;">
+                        <div style="font-size: 48px; margin-bottom: 20px;">🗺️</div>
+                        <p>載入Google Maps中...</p>
+                        <p style="font-size: 12px;">請點擊下方「開啟外部導航」按鈕查看路線</p>
+                    </div>
+                `;
+                setTimeout(() => {
+                    if (typeof google !== 'undefined' && googleMapsLoaded) {
+                        initGoogleMapsRoute(orders);
+                    }
+                }, 2000);
+            } else {
+                setTimeout(() => {
+                    initGoogleMapsRoute(orders);
+                }, 300);
+            }
+            
+            // 初始化地圖信息
+            const mapInfo = document.getElementById('map-info');
+            mapInfo.textContent = `路線總距離：${totalDistance || '計算中'} 公里，預計節省時間：${timeSaved || 0} 分鐘`;
+            
+            // 內嵌地圖載入完成
+        }
+
+        // 初始化Google Maps路線地圖
+        function initGoogleMapsRoute(orders) {
+            const mapContainer = document.getElementById('google-maps-container');
+            const embeddedMapContainer = document.getElementById('embedded-google-maps-container');
+            
+            // 優先使用模態框地圖，如果不存在則使用內嵌地圖
+            const activeContainer = mapContainer || embeddedMapContainer;
+            
+            if (!activeContainer) {
+                console.error('Google Maps 容器未找到');
+                return;
+            }
+            
+            try {
+                // 清除旧地圖
+                if (googleMap) {
+                    googleMap = null;
+                }
+                
+                // 創建新Google Maps實例
+                googleMap = new google.maps.Map(activeContainer, {
+                    center: { lat: 24.93, lng: 121.37 }, // 三峽區中心
+                    zoom: 12,
+                    mapTypeId: google.maps.MapTypeId.ROADMAP,
+                    zoomControl: true,
+                    streetViewControl: false,
+                    fullscreenControl: true,
+                    mapTypeControl: false
+                });
+                
+                // 添加路線標記
+                addGoogleMapsRouteMarkers(orders);
+                
+            } catch (error) {
+                console.error('Google Maps初始化失敗:', error);
+                activeContainer.innerHTML = `
+                    <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; color: #666;">
+                        <div style="font-size: 48px; margin-bottom: 20px;">🗺️</div>
+                        <p>地圖載入失敗</p>
+                        <p style="font-size: 12px;">${activeContainer === embeddedMapContainer ? '內嵌地圖' : '模態框地圖'}載入失敗，請重新整理頁面</p>
+                    </div>
+                `;
+            }
+        }
+
+        // 添加Google Maps路線標記
+        function addGoogleMapsRouteMarkers(orders) {
+            if (!googleMap || !orders || orders.length === 0) return;
+            
+            const bounds = new google.maps.LatLngBounds();
+            const infoWindow = new google.maps.InfoWindow();
+            
+            // 為每個訂單添加標記
+            orders.forEach((order, index) => {
+                // 生成模擬座標（實際應用中應該從geocoding獲取）
+                const lng = 121.37 + (Math.random() - 0.5) * 0.02;
+                const lat = 24.93 + (Math.random() - 0.5) * 0.02;
+                const position = { lat: lat, lng: lng };
+                
+                // 決定標記顏色和標籤
+                let markerColor = '#007bff'; // 預設藍色
+                let label = (index + 1).toString();
+                
+                if (index === 0) {
+                    markerColor = '#28a745'; // 起點綠色
+                    label = 'A';
+                } else if (index === orders.length - 1) {
+                    markerColor = '#dc3545'; // 終點紅色
+                    label = 'Z';
+                } else {
+                    label = String.fromCharCode(66 + index - 1); // B, C, D...
+                }
+                
+                // 創建標記
+                const marker = new google.maps.Marker({
+                    position: position,
+                    map: googleMap,
+                    title: `${index === 0 ? '起點' : (index === orders.length - 1 ? '終點' : '第' + index + '站')} - ${order.customer_name}`,
+                    label: {
+                        text: label,
+                        color: 'white',
+                        fontWeight: 'bold'
+                    },
+                    icon: {
+                        url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+                            <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="20" cy="20" r="18" fill="${markerColor}" stroke="white" stroke-width="2"/>
+                                <text x="20" y="26" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="14" font-weight="bold">${label}</text>
+                            </svg>
+                        `)}`,
+                        scaledSize: new google.maps.Size(40, 40),
+                        anchor: new google.maps.Point(20, 20)
+                    }
+                });
+                
+                // 添加點擊事件顯示信息窗
+                marker.addListener('click', () => {
+                    const content = `
+                        <div style="padding: 10px; max-width: 250px;">
+                            <h4 style="margin: 0 0 10px 0; color: ${markerColor};">${index === 0 ? '🚀 起點' : (index === orders.length - 1 ? '🏁 終點' : '📍 第' + index + '站')}</h4>
+                            <p style="margin: 5px 0;"><strong>客戶：</strong>${order.customer_name}</p>
+                            <p style="margin: 5px 0;"><strong>地址：</strong>${order.address}</p>
+                            <p style="margin: 5px 0;"><strong>電話：</strong>${order.customer_phone || '未提供'}</p>
+                            ${order.items && order.items.length > 0 ? 
+                                `<p style="margin: 5px 0;"><strong>商品：</strong>${order.items.map(item => `${item.product_name} x${item.quantity}`).join(', ')}</p>` 
+                                : ''}
+                        </div>
+                    `;
+                    infoWindow.setContent(content);
+                    infoWindow.open(googleMap, marker);
+                });
+                
+                bounds.extend(position);
+            });
+            
+            // 調整地圖視野以包含所有標記
+            if (orders.length > 1) {
+                googleMap.fitBounds(bounds);
+                
+                // 設定最小縮放級別
+                google.maps.event.addListenerOnce(googleMap, 'bounds_changed', function() {
+                    if (googleMap.getZoom() > 15) {
+                        googleMap.setZoom(15);
+                    }
+                });
+            } else if (orders.length === 1) {
+                googleMap.setCenter(bounds.getCenter());
+                googleMap.setZoom(14);
+            }
+        }
+
+        // 關閉地圖模態框
+        function closeMapModal() {
+            document.getElementById('map-modal').style.display = 'none';
+            if (googleMap) {
+                // Google Maps 不需要手動移除，只需設為 null
+                googleMap = null;
+            }
+        }
+
+        // 開啟外部地圖
+        function openExternalMap() {
+            if (currentInteractiveUrl) {
+                window.open(currentInteractiveUrl, '_blank');
+            } else if (currentRouteUrl) {
+                window.open(currentRouteUrl, '_blank');
+            } else {
+                showNotification('無法獲取路線地圖', 'warning');
+            }
+        }
+
+        // 點擊模態框背景關閉
+        document.addEventListener('click', function(e) {
+            if (e.target.id === 'map-modal') {
+                closeMapModal();
+            }
+        });
+
+        // ESC鍵關閉模態框
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeMapModal();
+            }
+        });
+        
+        // ========== 新增：App模式切換系統 ==========
+        
+        // 切換到導航模式
+        function switchToNavigationMode() {
+            if (selectedOrders.length === 0) {
+                showNotification('請先選擇訂單再開始配送', 'warning');
+                return;
+            }
+            
+            currentMode = 'navigation';
+            
+            // 添加切換動畫
+            const orderMode = document.getElementById('order-mode');
+            const navMode = document.getElementById('navigation-mode');
+            
+            orderMode.classList.add('hidden');
+            navMode.classList.add('active');
+            
+            // 初始化導航模式
+            setTimeout(() => {
+                initNavigationMode();
+            }, 300);
+            
+            showNotification('已切換到導航模式', 'success');
+        }
+        
+        // 切換到接單模式
+        function switchToOrderMode() {
+            currentMode = 'order';
+            
+            const orderMode = document.getElementById('order-mode');
+            const navMode = document.getElementById('navigation-mode');
+            
+            orderMode.classList.remove('hidden');
+            navMode.classList.remove('active');
+            
+            showNotification('已返回接單模式', 'info');
+        }
+        
+        // 初始化導航模式
+        function initNavigationMode() {
+            if (!googleMapsLoaded) {
+                showNotification('Google Maps 尚未載入，請稍候...', 'warning');
+                return;
+            }
+            
+            initNavigationMap();
+            loadNavigationOrders();
+            updateNavigationStatus();
+            getCurrentLocationForNav();
+        }
+        
+        // 初始化導航地圖
+        function initNavigationMap() {
+            const mapContainer = document.getElementById('nav-google-map');
+            if (!mapContainer) return;
+            
+            // 預設位置（新北市三峽區）
+            const defaultCenter = { lat: 24.9342, lng: 121.3706 };
+            
+            navigationMap = new google.maps.Map(mapContainer, {
+                zoom: 15,
+                center: defaultCenter,
+                mapTypeControl: false,
+                streetViewControl: false,
+                fullscreenControl: false,
+                styles: [
+                    {
+                        "featureType": "all",
+                        "elementType": "geometry.fill",
+                        "stylers": [{"color": "#1a1a1a"}]
+                    },
+                    {
+                        "featureType": "water",
+                        "elementType": "geometry",
+                        "stylers": [{"color": "#2d2d2d"}]
+                    },
+                    {
+                        "featureType": "road",
+                        "elementType": "geometry",
+                        "stylers": [{"color": "#404040"}]
+                    }
+                ]
+            });
+            
+            directionsService = new google.maps.DirectionsService();
+            directionsRenderer = new google.maps.DirectionsRenderer({
+                suppressMarkers: false,
+                polylineOptions: {
+                    strokeColor: '#00d4aa',
+                    strokeWeight: 4
+                }
+            });
+            directionsRenderer.setMap(navigationMap);
+            
+            console.log('導航地圖已初始化');
+        }
+        
+        // 載入導航訂單
+        function loadNavigationOrders() {
+            const navOrdersList = document.getElementById('nav-orders-list');
+            const navOrdersSummary = document.getElementById('nav-orders-summary');
+            
+            if (myDeliveryOrders.length === 0) {
+                navOrdersList.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><p>暫無配送訂單</p></div>';
+                navOrdersSummary.textContent = '暫無配送任務';
+                return;
+            }
+            
+            // 更新摘要
+            const completed = myDeliveryOrders.filter(order => order.status === 'completed').length;
+            const remaining = myDeliveryOrders.length - completed;
+            navOrdersSummary.textContent = `已完成 ${completed} 筆 • 剩餘 ${remaining} 筆`;
+            
+            // 渲染訂單列表
+            let ordersHtml = '';
+            
+            // 正在配送的訂單
+            const currentOrder = myDeliveryOrders.find(order => order.status === 'delivering');
+            if (currentOrder) {
+                ordersHtml += `
+                    <div class="nav-current-order">
+                        <h3>📍 正在配送 - ${currentOrder.customer_name}</h3>
+                        <div class="nav-order-address">${currentOrder.delivery_address}</div>
+                    </div>
+                `;
+                
+                // 更新底部狀態
+                document.getElementById('nav-current-customer').textContent = currentOrder.customer_name;
+                
+                // 顯示完成配送按鈕
+                document.getElementById('nav-complete-btn').style.display = 'block';
+            }
+            
+            // 待配送訂單
+            const pendingOrders = myDeliveryOrders.filter(order => order.status === 'accepted');
+            if (pendingOrders.length > 0) {
+                ordersHtml += '<div class="pending-orders"><h3>📦 即將配送</h3>';
+                pendingOrders.forEach(order => {
+                    ordersHtml += `
+                        <div class="pending-order">
+                            <h4>${order.customer_name}</h4>
+                            <div class="nav-order-address">${order.delivery_address}</div>
+                        </div>
+                    `;
+                });
+                ordersHtml += '</div>';
+            }
+            
+            navOrdersList.innerHTML = ordersHtml;
+            
+            // 如果有當前訂單，顯示路線
+            if (currentOrder) {
+                showDeliveryRoute(currentOrder.delivery_address);
+            }
+        }
+        
+        // 更新導航模式狀態列
+        function updateNavigationStatus() {
+            const orderCountEl = document.getElementById('nav-order-count');
+            const etaEl = document.getElementById('nav-eta');
+            const customerDisplayEl = document.getElementById('nav-customer-display');
+            
+            if (selectedOrders.length > 0) {
+                // 更新訂單數量
+                if (orderCountEl) {
+                    orderCountEl.textContent = selectedOrders.length;
+                }
+                
+                // 找到當前配送的訂單（第一個）
+                const currentOrderId = selectedOrders[0];
+                const currentOrderCard = document.querySelector(`[data-order-id="${currentOrderId}"]`);
+                
+                if (currentOrderCard) {
+                    // 獲取客戶名稱
+                    const customerName = currentOrderCard.querySelector('.order-customer')?.textContent?.split('👤')[1]?.split('|')[0]?.trim() || '未知客戶';
+                    if (customerDisplayEl) {
+                        customerDisplayEl.textContent = customerName;
+                    }
+                    
+                    // 設定預計送達時間
+                    const now = new Date();
+                    const eta = new Date(now.getTime() + 25 * 60000); // 25分鐘後
+                    if (etaEl) {
+                        etaEl.textContent = eta.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+                    }
+                }
+            } else {
+                // 沒有選擇訂單時的預設狀態
+                if (orderCountEl) orderCountEl.textContent = '0';
+                if (etaEl) etaEl.textContent = '計算中';
+                if (customerDisplayEl) customerDisplayEl.textContent = '準備配送';
+            }
+        }
+        
+        // 獲取當前位置（導航模式）
+        function getCurrentLocationForNav() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        currentPosition = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+                        
+                        navigationMap.setCenter(currentPosition);
+                        
+                        // 添加當前位置標記
+                        new google.maps.Marker({
+                            position: currentPosition,
+                            map: navigationMap,
+                            title: '我的位置',
+                            icon: {
+                                url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                                    <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                        <circle cx="10" cy="10" r="8" fill="#00d4aa" stroke="#fff" stroke-width="2"/>
+                                        <circle cx="10" cy="10" r="3" fill="#fff"/>
+                                    </svg>
+                                `),
+                                scaledSize: new google.maps.Size(20, 20)
+                            }
+                        });
+                    },
+                    (error) => {
+                        console.log('無法獲取位置:', error);
+                        document.getElementById('nav-remaining-distance').textContent = '無法獲取GPS位置';
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 300000
+                    }
+                );
+            }
+        }
+        
+        // 顯示配送路線
+        function showDeliveryRoute(destinationAddress) {
+            if (!currentPosition) {
+                showNotification('正在定位中，請稍候...', 'info');
+                return;
+            }
+            
+            const request = {
+                origin: currentPosition,
+                destination: destinationAddress,
+                travelMode: google.maps.TravelMode.DRIVING,
+                avoidHighways: false,
+                avoidTolls: false
+            };
+            
+            directionsService.route(request, (result, status) => {
+                if (status === 'OK') {
+                    directionsRenderer.setDirections(result);
+                    
+                    // 更新距離和時間資訊
+                    const route = result.routes[0].legs[0];
+                    document.getElementById('nav-remaining-distance').textContent = 
+                        `剩餘 ${route.distance.text}`;
+                } else {
+                    showNotification('路線規劃失敗，請檢查地址', 'error');
+                }
+            });
+        }
+        
+        // 切換導航訂單面板
+        function toggleNavOrdersPanel() {
+            const panel = document.getElementById('nav-orders-panel');
+            isNavPanelExpanded = !isNavPanelExpanded;
+            panel.classList.toggle('expanded', isNavPanelExpanded);
+        }
+        
+        // 完成當前配送
+        function completeCurrentDelivery() {
+            const currentOrder = myDeliveryOrders.find(order => order.status === 'delivering');
+            if (!currentOrder) {
+                showNotification('沒有正在配送的訂單', 'warning');
+                return;
+            }
+            
+            if (confirm(`確認完成配送給 ${currentOrder.customer_name}？`)) {
+                // 更新訂單狀態
+                currentOrder.status = 'completed';
+                currentOrder.completed_time = new Date().toISOString();
+                
+                showNotification('✅ 配送完成！', 'success');
+                
+                // 重新載入導航訂單
+                setTimeout(() => {
+                    loadNavigationOrders();
+                    updateStartDeliveryButton();
+                    
+                    // 如果還有待配送訂單，自動切換到下一個
+                    const nextOrder = myDeliveryOrders.find(order => order.status === 'accepted');
+                    if (nextOrder) {
+                        nextOrder.status = 'delivering';
+                        showNotification(`開始配送給 ${nextOrder.customer_name}`, 'info');
+                        showDeliveryRoute(nextOrder.delivery_address);
+                    } else {
+                        showNotification('所有訂單已完成！可以返回接單模式', 'success');
+                        document.getElementById('nav-complete-btn').style.display = 'none';
+                    }
+                }, 1000);
+            }
+        }
+        
+        
+        // 修改現有函數，在接取訂單後更新按鈕
+        const originalAcceptOrders = acceptSelectedOrders;
+        window.acceptSelectedOrders = function() {
+            const result = originalAcceptOrders.apply(this, arguments);
+            updateStartDeliveryButton();
+            return result;
+        };
+        
+        // ========== 統計記錄模態框功能 ==========
+        
+        // 開啟統計模態框
+        function openStatsModal() {
+            const modal = document.getElementById('stats-modal');
+            modal.classList.add('show');
+            
+            // 更新統計數據
+            updateDetailedStats();
+        }
+        
+        // 關閉統計模態框
+        function closeStatsModal() {
+            const modal = document.getElementById('stats-modal');
+            modal.classList.remove('show');
+        }
+        
+        // 更新詳細統計數據
+        async function updateDetailedStats() {
+            try {
+                const response = await fetch('/api/driver/stats');
+                const data = await response.json();
+                
+                // 更新模態框中的統計數據
+                document.getElementById('modal-today-completed').textContent = data.todayCompleted || 0;
+                document.getElementById('modal-today-earnings').textContent = '$' + (data.todayEarnings || 0);
+                document.getElementById('modal-total-orders').textContent = data.totalOrders || 0;
+                document.getElementById('modal-success-rate').textContent = (data.successRate || 95) + '%';
+                document.getElementById('modal-avg-time').textContent = (data.avgDeliveryTime || 25) + '分鐘';
+                document.getElementById('modal-distance').textContent = (data.totalDistance || 0) + '公里';
+            } catch (error) {
+                console.error('更新統計失敗:', error);
+                showNotification('無法載入統計數據', 'error');
+            }
+        }
+        
+        // 模態框事件監聽器
+        document.addEventListener('click', function(e) {
+            if (e.target.id === 'stats-modal') {
+                closeStatsModal();
+            }
+        });
+        
+        // ========== 新增功能函數 ==========
+        
+        // 全局變數
+        let currentOrderData = null;
+        let uploadedPhotos = [];
+        let selectedProblemCategory = null;
+        
+        // 撥打電話功能
+        function makeCall() {
+            const currentOrder = myDeliveryOrders.find(order => order.status === 'delivering');
+            if (currentOrder && currentOrder.customer_phone) {
+                window.location.href = `tel:${currentOrder.customer_phone}`;
+            } else {
+                showNotification('無法取得客戶電話號碼', 'error');
+            }
+        }
+        
+        // 顯示訂單詳情
+        function showOrderDetails() {
+            const currentOrder = myDeliveryOrders.find(order => order.status === 'delivering');
+            if (!currentOrder) {
+                showNotification('沒有進行中的訂單', 'error');
+                return;
+            }
+            
+            currentOrderData = currentOrder;
+            
+            // 更新彈窗內容
+            document.getElementById('order-customer-name').textContent = currentOrder.customer_name;
+            document.getElementById('order-id').textContent = `訂單編號: #${currentOrder.id}`;
+            document.getElementById('order-address').textContent = currentOrder.delivery_address;
+            document.getElementById('order-phone').textContent = currentOrder.customer_phone || '無';
+            document.getElementById('order-time').textContent = formatDateTime(currentOrder.delivery_time);
+            document.getElementById('order-payment').textContent = getPaymentMethodText(currentOrder.payment_method);
+            
+            // 載入商品清單
+            loadProductList(currentOrder);
+            
+            // 顯示彈窗
+            const modal = document.getElementById('order-details-modal');
+            modal.classList.add('show');
+        }
+        
+        // 顯示導航模式訂單詳情
+        function showNavOrderDetails() {
+            if (selectedOrders.length === 0) {
+                showNotification('沒有選擇任何訂單', 'warning');
+                return;
+            }
+            
+            // 取得當前配送的訂單（第一個）
+            const currentOrderId = selectedOrders[0];
+            const currentOrderCard = document.querySelector(`[data-order-id="${currentOrderId}"]`);
+            
+            if (!currentOrderCard) {
+                showNotification('找不到訂單詳情', 'error');
+                return;
+            }
+            
+            // 解析訂單資訊
+            const orderNumber = currentOrderCard.querySelector('.order-number')?.textContent || `#${currentOrderId}`;
+            const customerInfo = currentOrderCard.querySelector('.order-customer')?.textContent || '';
+            const address = currentOrderCard.querySelector('.order-address')?.textContent?.replace('📍 ', '') || '';
+            const amount = currentOrderCard.querySelector('.order-amount')?.textContent?.replace('💰 ', '') || '';
+            
+            // 解析客戶姓名和電話
+            const customerParts = customerInfo.split('|');
+            const customerName = customerParts[0]?.replace('👤 ', '').trim() || '未知客戶';
+            const customerPhone = customerParts[1]?.replace('📞 ', '').trim() || '無電話';
+            
+            // 更新彈窗內容
+            document.getElementById('order-customer-name').textContent = customerName;
+            document.getElementById('order-id').textContent = `訂單編號: ${orderNumber}`;
+            document.getElementById('order-address').textContent = address;
+            document.getElementById('order-phone').textContent = customerPhone;
+            document.getElementById('order-time').textContent = new Date().toLocaleString('zh-TW');
+            document.getElementById('order-payment').textContent = '現金付款'; // 預設值
+            
+            // 更新訂單金額資訊
+            const orderTotalEl = document.getElementById('order-total');
+            if (orderTotalEl) {
+                orderTotalEl.textContent = amount;
+            }
+            
+            // 載入備註資訊（如果有的話）
+            const orderNotesEl = document.getElementById('order-notes');
+            if (orderNotesEl) {
+                orderNotesEl.textContent = '請按電鈴，有管理員代收'; // 示範備註
+            }
+            
+            // 顯示彈窗
+            const modal = document.getElementById('order-details-modal');
+            modal.classList.add('show');
+        }
+        
+        // 隱藏訂單詳情
+        function hideOrderDetails() {
+            const modal = document.getElementById('order-details-modal');
+            modal.classList.remove('show');
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 300);
+        }
+        
+        // 載入商品清單
+        function loadProductList(order) {
+            const productListElement = document.getElementById('product-list');
+            let productsHtml = '';
+            
+            if (order.items && order.items.length > 0) {
+                order.items.forEach(item => {
+                    productsHtml += `
+                        <div class="product-item">
+                            <div class="product-name">${item.product_name}</div>
+                            <div class="product-quantity">x${item.quantity}</div>
+                            <div class="product-price">$${item.price * item.quantity}</div>
+                        </div>
+                    `;
+                });
+            } else {
+                productsHtml = '<div style="text-align: center; color: #666; padding: 20px;">沒有商品資訊</div>';
+            }
+            
+            productListElement.innerHTML = productsHtml;
+        }
+        
+        // 格式化日期時間
+        function formatDateTime(dateString) {
+            if (!dateString) return '未指定';
+            const date = new Date(dateString);
+            return date.toLocaleString('zh-TW', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+        
+        // 獲取付款方式文字
+        function getPaymentMethodText(method) {
+            const paymentMethods = {
+                'cash': '現金',
+                'credit_card': '信用卡',
+                'line_pay': 'Line Pay',
+                'bank_transfer': '銀行轉帳'
+            };
+            return paymentMethods[method] || '未指定';
+        }
+        
+        // 觸發拍照上傳
+        function triggerPhotoUpload() {
+            document.getElementById('photo-input').click();
+        }
+        
+        // 處理照片上傳
+        document.getElementById('photo-input').addEventListener('change', function(e) {
+            const files = Array.from(e.target.files);
+            
+            files.forEach(file => {
+                if (file.type.startsWith('image/')) {
+                    // 壓縮照片
+                    compressImage(file, (compressedFile) => {
+                        uploadedPhotos.push(compressedFile);
+                        displayPhotoPreview(compressedFile);
+                    });
+                }
+            });
+        });
+        
+        // 壓縮圖片
+        function compressImage(file, callback) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            
+            img.onload = function() {
+                const maxWidth = 800;
+                const maxHeight = 600;
+                let { width, height } = img;
+                
+                if (width > height) {
+                    if (width > maxWidth) {
+                        height *= maxWidth / width;
+                        width = maxWidth;
+                    }
+                } else {
+                    if (height > maxHeight) {
+                        width *= maxHeight / height;
+                        height = maxHeight;
+                    }
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                canvas.toBlob(callback, 'image/jpeg', 0.8);
+            };
+            
+            img.src = URL.createObjectURL(file);
+        }
+        
+        // 顯示照片預覽
+        function displayPhotoPreview(file) {
+            const previewContainer = document.getElementById('photo-preview');
+            const img = document.createElement('img');
+            img.src = URL.createObjectURL(file);
+            img.onclick = () => {
+                // 可以添加放大預覽功能
+                window.open(img.src, '_blank');
+            };
+            previewContainer.appendChild(img);
+        }
+        
+        // 問題分類選擇
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('problem-category')) {
+                // 移除其他選中狀態
+                document.querySelectorAll('.problem-category').forEach(cat => {
+                    cat.classList.remove('selected');
+                });
+                
+                // 添加選中狀態
+                e.target.classList.add('selected');
+                selectedProblemCategory = e.target.dataset.problem;
+            }
+        });
+        
+        // 顯示批次訂單面板
+        function showBatchOrdersPanel() {
+            toggleNavOrdersPanel();
+        }
+        
+        // 完成訂單（含詳情）
+        function completeOrderWithDetails() {
+            if (!currentOrderData) {
+                showNotification('找不到訂單資料', 'error');
+                return;
+            }
+            
+            // 檢查是否有上傳照片
+            if (uploadedPhotos.length === 0) {
+                if (!confirm('尚未上傳配送照片，確定要完成配送嗎？')) {
+                    return;
+                }
+            }
+            
+            // 上傳照片和完成配送
+            uploadPhotosAndComplete();
+        }
+        
+        // 上傳照片並完成配送
+        async function uploadPhotosAndComplete() {
+            try {
+                showNotification('正在上傳照片...', 'info');
+                
+                if (uploadedPhotos.length > 0) {
+                    const formData = new FormData();
+                    formData.append('orderId', currentOrderData.id);
+                    
+                    uploadedPhotos.forEach((photo, index) => {
+                        formData.append('photos', photo, `delivery_${Date.now()}_${index}.jpg`);
+                    });
+                    
+                    const response = await fetch('/api/driver/upload-delivery-photos', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('照片上傳失敗');
+                    }
+                }
+                
+                // 完成配送
+                await completeDelivery();
+                hideOrderDetails();
+                showNotification('配送完成！', 'success');
+                
+            } catch (error) {
+                console.error('完成配送失敗:', error);
+                showNotification('完成配送失敗: ' + error.message, 'error');
+            }
+        }
+        
+        // 提交問題回報
+        async function submitProblemReport() {
+            if (!selectedProblemCategory) {
+                showNotification('請選擇問題分類', 'error');
+                return;
+            }
+            
+            const description = document.getElementById('problem-description').value.trim();
+            if (!description) {
+                showNotification('請填寫問題描述', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/driver/report-problem', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        orderId: currentOrderData.id,
+                        category: selectedProblemCategory,
+                        description: description,
+                        photos: uploadedPhotos.length
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('問題回報失敗');
+                }
+                
+                showNotification('問題已回報，系統將盡快處理', 'success');
+                hideOrderDetails();
+                
+                // 重置表單
+                selectedProblemCategory = null;
+                document.getElementById('problem-description').value = '';
+                document.querySelectorAll('.problem-category').forEach(cat => {
+                    cat.classList.remove('selected');
+                });
+                
+            } catch (error) {
+                console.error('問題回報失敗:', error);
+                showNotification('問題回報失敗: ' + error.message, 'error');
+            }
+        }
+        
+        // 拖拽上傳功能
+        const uploadArea = document.getElementById('photo-upload-area');
+        
+        uploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            uploadArea.classList.remove('dragover');
+            
+            const files = Array.from(e.dataTransfer.files);
+            files.forEach(file => {
+                if (file.type.startsWith('image/')) {
+                    compressImage(file, (compressedFile) => {
+                        uploadedPhotos.push(compressedFile);
+                        displayPhotoPreview(compressedFile);
+                    });
+                }
+            });
+        });
+        
+        // 點擊背景關閉彈窗
+        document.getElementById('order-details-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                hideOrderDetails();
+            }
+        });
+        
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeStatsModal();
+                hideOrderDetails();
+            }
+        });
+        
+    
+        
+        
+        
+        // 全域變數
+        let selectedOrders = [];
+        // cartState 已在上方定義為 'selection'
+        let isCartVisible = false;
+        
+        // 訂單選擇函數（完整版）
+        function selectOrder(orderId) {
+            const checkbox = document.getElementById('order-' + orderId);
+            if (checkbox) {
+                checkbox.checked = !checkbox.checked;
+                
+                const orderCard = checkbox.closest('.order-card');
+                if (checkbox.checked) {
+                    orderCard.classList.add('selected');
+                    addToCart(orderId);
+                } else {
+                    orderCard.classList.remove('selected');
+                    removeFromCart(orderId);
+                }
+                
+                updateSelectedCount();
+                updateCartDisplay();
+            }
+        }
+        
+        // 添加到購物車
+        function addToCart(orderId) {
+            if (!selectedOrders.includes(orderId)) {
+                selectedOrders.push(orderId);
+                console.log(`添加訂單 ${orderId} 到購物車`);
+            }
+        }
+        
+        // 從購物車移除
+        function removeFromCart(orderId) {
+            const index = selectedOrders.indexOf(orderId);
+            if (index > -1) {
+                selectedOrders.splice(index, 1);
+                console.log(`從購物車移除訂單 ${orderId}`);
+            }
+        }
+        
+        // 更新購物車顯示
+        function updateCartDisplay() {
+            const cartBtn = document.getElementById('shopping-cart-btn');
+            const cartCount = document.getElementById('cart-count');
+            const cartTotal = document.getElementById('cart-total');
+            const cartBody = document.getElementById('cart-panel-body');
+            
+            // 計算總金額
+            let totalAmount = 0;
+            selectedOrders.forEach(orderId => {
+                const orderCard = document.querySelector(`#order-${orderId}`)?.closest('.order-card');
+                if (orderCard) {
+                    const priceText = orderCard.querySelector('.order-amount')?.textContent;
+                    if (priceText) {
+                        const price = parseInt(priceText.replace(/[^\d]/g, ''));
+                        if (!isNaN(price)) {
+                            totalAmount += price;
+                        }
+                    }
+                }
+            });
+            
+            // 更新底部橫條顯示
+            if (cartCount) {
+                cartCount.textContent = selectedOrders.length;
+            }
+            
+            if (cartTotal) {
+                cartTotal.textContent = `NT$${totalAmount}`;
+            }
+            
+            // 購物車按鈕永遠顯示，只更新數量和金額
+            if (cartBtn) {
+                cartBtn.style.display = 'flex';
+            }
+            
+            // 更新購物車內容
+            if (cartBody) {
+                if (selectedOrders.length === 0) {
+                    cartBody.innerHTML = `
+                        <div class="cart-empty-state">
+                            <div class="cart-empty-icon">🛒</div>
+                            <p>購物車是空的</p>
+                            <small>請先選擇訂單</small>
+                        </div>`;
+                } else {
+                    let cartHTML = '<div style="padding: 10px;">';
+                    selectedOrders.forEach(orderId => {
+                        const orderCard = document.querySelector(`#order-${orderId}`)?.closest('.order-card');
+                        if (orderCard) {
+                            const orderNumber = orderCard.querySelector('.order-number')?.textContent || `訂單 #${orderId}`;
+                            const customerInfo = orderCard.querySelector('.order-customer')?.textContent || '未知客戶';
+                            const address = orderCard.querySelector('.order-address')?.textContent || '未知地址';
+                            const payment = orderCard.querySelector('.order-payment')?.textContent || '未知付款';
+                            
+                            cartHTML += `
+                                <div class="cart-order-item">
+                                    <button class="cart-remove-btn" onclick="removeOrderFromCart(${orderId})" title="移除">×</button>
+                                    <div><strong>${orderNumber}</strong></div>
+                                    <div style="font-size: 12px; color: #666;">${customerInfo}</div>
+                                    <div style="font-size: 11px; color: #888;">${address}</div>
+                                    <div style="font-size: 11px; color: #007bff;">${payment}</div>
+                                </div>`;
+                        }
+                    });
+                    cartHTML += '</div>';
+                    cartBody.innerHTML = cartHTML;
+                }
+            }
+            
+            // 更新購物車按鈕狀態
+            updateCartActionButton();
+        }
+        
+        // 從購物車中移除訂單
+        function removeOrderFromCart(orderId) {
+            const checkbox = document.getElementById('order-' + orderId);
+            if (checkbox) {
+                checkbox.checked = false;
+                checkbox.closest('.order-card').classList.remove('selected');
+            }
+            removeFromCart(orderId);
+            updateSelectedCount();
+            updateCartDisplay();
+        }
+        
+        // 切換購物車顯示
+        function toggleShoppingCart() {
+            const cartPanel = document.getElementById('shopping-cart-panel');
+            if (cartPanel) {
+                isCartVisible = !isCartVisible;
+                if (isCartVisible) {
+                    cartPanel.classList.add('show');
+                } else {
+                    cartPanel.classList.remove('show');
+                }
+            }
+        }
+        
+        // 更新購物車動作按鈕
+        function updateCartActionButton() {
+            const actionBtn = document.getElementById('cart-action-btn');
+            if (!actionBtn || selectedOrders.length === 0) return;
+            
+            switch (cartState) {
+                case 'lock':
+                    actionBtn.innerHTML = '🔒 鎖定訂單';
+                    actionBtn.className = 'cart-action-btn lock';
+                    break;
+                case 'optimize':
+                    actionBtn.innerHTML = '🧭 優化路線';
+                    actionBtn.className = 'cart-action-btn optimize';
+                    break;
+                case 'start':
+                    actionBtn.innerHTML = '🚀 開始配送';
+                    actionBtn.className = 'cart-action-btn start';
+                    break;
+            }
+        }
+        
+        // 重複的函數已移除，使用上方的 handleCartAction
+        
+        // 更新選擇數量（兼容原有函數）
+        function updateSelectedCount() {
+            const count = selectedOrders.length;
+            
+            const confirmContainer = document.getElementById('confirm-orders-container');
+            const confirmCount = document.getElementById('confirm-count');
+            
+            if (confirmContainer && confirmCount) {
+                confirmContainer.style.display = count > 0 ? 'block' : 'none';
+                confirmCount.textContent = count;
+            }
+            
+            console.log(`已選擇 ${count} 筆訂單`);
+        }
+        
+        // 確認選擇的訂單（兼容原有函數）
+        function confirmSelectedOrders() {
+            if (selectedOrders.length === 0) {
+                alert('請至少選擇一筆訂單');
+                return;
+            }
+            
+            // 顯示購物車
+            toggleShoppingCart();
+        }
+        function refreshOrders() {
+            console.log('重新載入訂單（靜態版本）');
+            location.reload();
+        }
+        
+        function confirmSelectedOrders() {
+            const checkboxes = document.querySelectorAll('.order-select-checkbox:checked');
+            if (checkboxes.length === 0) {
+                alert('請至少選擇一筆訂單');
+                return;
+            }
+            
+            alert(`已確認接取 ${checkboxes.length} 筆訂單！`);
+            console.log('確認接取訂單：', checkboxes.length, '筆');
+        }
+        </script>
+    
+    <!-- 統計記錄模態框 -->
+    <div id="stats-modal" class="stats-modal">
+        <div class="stats-modal-content">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <span class="stat-icon">📊</span>
+                    <span>詳細統計記錄</span>
+                </div>
+                <button class="modal-close" onclick="closeStatsModal()">×</button>
+            </div>
+            
+            <div class="detailed-stats">
+                <div class="detailed-stat-item">
+                    <div class="stat-label">
+                        <span class="stat-icon">📅</span>
+                        <span>本月完成訂單</span>
+                    </div>
+                    <div class="stat-value" id="modal-month-completed">125</div>
+                </div>
+                
+                <div class="detailed-stat-item">
+                    <div class="stat-label">
+                        <span class="stat-icon">✅</span>
+                        <span>今日完成訂單</span>
+                    </div>
+                    <div class="stat-value" id="modal-today-completed">8</div>
+                </div>
+                
+                <div class="detailed-stat-item">
+                    <div class="stat-label">
+                        <span class="stat-icon">🗺️</span>
+                        <span>本月配送距離</span>
+                    </div>
+                    <div class="stat-value" id="modal-month-distance">856 公里</div>
+                </div>
+                
+                <div class="detailed-stat-item">
+                    <div class="stat-label">
+                        <span class="stat-icon">⏱️</span>
+                        <span>平均配送時間</span>
+                    </div>
+                    <div class="stat-value" id="modal-avg-time">22 分鐘</div>
+                </div>
+                
+                <div class="detailed-stat-item">
+                    <div class="stat-label">
+                        <span class="stat-icon">🎯</span>
+                        <span>準時率</span>
+                    </div>
+                    <div class="stat-value" id="modal-success-rate">98%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

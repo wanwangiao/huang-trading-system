@@ -1,0 +1,483 @@
+/* =================================================
+   🍃 誠意鮮蔬 - SUB AGENT團隊現代簡約優化版
+   Mobile-First 設計，注重觸控體驗和視覺層次
+   ================================================= */
+
+/* CSS 變數定義 - 統一色彩系統 */
+:root {
+  --primary-green: #2d5a3d;
+  --accent-green: #7cb342;
+  --light-green: #f8fffe;
+  --surface-white: #ffffff;
+  --text-primary: #2d4a3a;
+  --text-secondary: #6b7c6b;
+  --border-light: rgba(124, 179, 66, 0.12);
+  --shadow-light: 0 2px 12px rgba(45, 90, 61, 0.08);
+  --shadow-medium: 0 4px 24px rgba(45, 90, 61, 0.12);
+  
+  /* 觸控友好的尺寸標準 */
+  --touch-target-min: 44px;
+  --touch-target-comfortable: 48px;
+  --spacing-xs: 0.5rem;
+  --spacing-sm: 0.75rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  
+  /* 現代化圓角 */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 50%;
+}
+
+/* =================================================
+   📱 基礎響應式設定
+   ================================================= */
+
+/* 確保所有觸控元素至少44px */
+button, .btn, .touch-target, 
+.product-item, .cart-item-controls button {
+  min-height: var(--touch-target-min);
+  min-width: var(--touch-target-min);
+}
+
+/* =================================================
+   🏪 頂部導航 - 現代簡約版
+   ================================================= */
+.main-header {
+  background: var(--primary-green);
+  color: white;
+  padding: var(--spacing-lg) 0;
+  box-shadow: var(--shadow-medium);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-content {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-lg);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.store-name {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: 0.3px;
+}
+
+.store-stats {
+  display: flex;
+  gap: var(--spacing-sm);
+  font-size: 0.85rem;
+  opacity: 0.9;
+  margin-top: var(--spacing-xs);
+}
+
+/* =================================================
+   🔍 搜尋區域 - 簡化版
+   ================================================= */
+.search-section {
+  background: var(--surface-white);
+  padding: var(--spacing-md) 0;
+  border-bottom: 1px solid var(--border-light);
+  position: sticky;
+  top: 72px; /* header高度 */
+  z-index: 99;
+}
+
+.search-input {
+  width: 100%;
+  padding: var(--spacing-md);
+  border: 2px solid var(--border-light);
+  border-radius: var(--radius-xl);
+  font-size: 1rem;
+  background: var(--surface-white);
+  transition: all 0.3s ease;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--accent-green);
+  box-shadow: 0 0 0 3px rgba(124, 179, 66, 0.1);
+}
+
+/* =================================================
+   📋 分類標籤 - 水平滾動優化
+   ================================================= */
+.category-nav {
+  background: var(--surface-white);
+  padding: var(--spacing-md) 0;
+  border-bottom: 1px solid var(--border-light);
+  position: sticky;
+  top: 130px; /* header + search 高度 */
+  z-index: 98;
+}
+
+.category-tabs {
+  display: flex;
+  gap: var(--spacing-xs);
+  overflow-x: auto;
+  padding: 0 var(--spacing-lg);
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  
+  /* 隱藏滾動條但保持功能 */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.category-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.category-tab {
+  flex-shrink: 0;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border: 2px solid var(--border-light);
+  border-radius: var(--radius-xl);
+  background: var(--surface-white);
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  scroll-snap-align: start;
+  white-space: nowrap;
+}
+
+.category-tab.active {
+  background: var(--accent-green);
+  color: white;
+  border-color: var(--accent-green);
+}
+
+.category-tab:hover:not(.active) {
+  border-color: var(--accent-green);
+  color: var(--accent-green);
+}
+
+/* =================================================
+   🥬 商品列表 - 現代卡片式設計
+   ================================================= */
+.products-section {
+  padding-top: var(--spacing-lg);
+  padding-bottom: 120px; /* 避免被購物車遮擋 */
+}
+
+.products-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-md);
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-lg);
+}
+
+.product-item {
+  background: var(--surface-white);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  box-shadow: var(--shadow-light);
+  border: 1px solid var(--border-light);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  
+  /* 觸控優化 */
+  -webkit-tap-highlight-color: rgba(124, 179, 66, 0.1);
+  touch-action: manipulation;
+}
+
+.product-item:active {
+  transform: scale(0.98);
+  background: rgba(124, 179, 66, 0.02);
+}
+
+.product-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(124, 179, 66, 0.05), transparent);
+  transition: left 0.3s ease;
+}
+
+.product-item:hover::before {
+  left: 100%;
+}
+
+/* 產品圖片區域 */
+.product-image-left {
+  flex-shrink: 0;
+  width: 80px;
+  height: 80px;
+}
+
+.product-image-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--light-green), #f1f8f6);
+  border-radius: var(--radius-md);
+  font-size: 2.5rem;
+  border: 1px solid var(--border-light);
+}
+
+/* 產品資訊區域 */
+.product-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.product-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.product-price {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.price-amount {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--accent-green);
+}
+
+.price-unit {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.priced-item-badge .price-label {
+  display: inline-block;
+  background: rgba(255, 138, 101, 0.1);
+  color: #ff6b35;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1px solid rgba(255, 138, 101, 0.2);
+}
+
+/* =================================================
+   🛒 購物車 - 底部固定式
+   ================================================= */
+.cart-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--accent-green);
+  padding: var(--spacing-lg);
+  z-index: 1000;
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
+  transform: translateY(100%);
+  transition: transform 0.3s ease;
+}
+
+.cart-bar.visible {
+  transform: translateY(0);
+}
+
+.cart-summary {
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: white;
+}
+
+.cart-info {
+  flex: 1;
+}
+
+.cart-total {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin: 0 0 var(--spacing-xs) 0;
+}
+
+.cart-note {
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+.checkout-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+}
+
+.checkout-btn:active {
+  transform: scale(0.95);
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.checkout-arrow {
+  color: white;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+/* =================================================
+   🎯 互動回饋和動畫
+   ================================================= */
+
+/* 觸控回饋 */
+@keyframes touchFeedback {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.98); }
+  100% { transform: scale(1); }
+}
+
+.touch-feedback:active {
+  animation: touchFeedback 0.1s ease;
+}
+
+/* 載入動畫 */
+@keyframes slideInUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.product-item {
+  animation: slideInUp 0.3s ease;
+}
+
+/* =================================================
+   📱 響應式優化
+   ================================================= */
+
+/* 小屏手機 */
+@media (max-width: 360px) {
+  :root {
+    --spacing-lg: 1rem;
+    --spacing-xl: 1.5rem;
+  }
+  
+  .store-name {
+    font-size: 1.5rem;
+  }
+  
+  .product-item {
+    padding: var(--spacing-md);
+    gap: var(--spacing-md);
+  }
+  
+  .product-image-left {
+    width: 70px;
+    height: 70px;
+  }
+  
+  .product-image-container {
+    font-size: 2rem;
+  }
+}
+
+/* 大屏手機 */
+@media (min-width: 414px) {
+  .products-list {
+    gap: var(--spacing-lg);
+  }
+  
+  .product-item {
+    padding: var(--spacing-xl);
+  }
+}
+
+/* 平板尺寸 */
+@media (min-width: 768px) {
+  .header-content,
+  .search-container,
+  .products-list {
+    max-width: 600px;
+  }
+  
+  .products-list {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-lg);
+  }
+}
+
+/* =================================================
+   🌙 深色模式支持 (預留)
+   ================================================= */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface-white: #1a1a1a;
+    --text-primary: #e0e0e0;
+    --text-secondary: #b0b0b0;
+    --light-green: #2a2a2a;
+    --border-light: rgba(124, 179, 66, 0.2);
+  }
+}
+
+/* =================================================
+   ♿ 可訪問性優化
+   ================================================= */
+
+/* 高對比度模式 */
+@media (prefers-contrast: high) {
+  .product-item {
+    border: 2px solid var(--text-primary);
+  }
+  
+  .category-tab {
+    border-width: 2px;
+  }
+}
+
+/* 減少動畫模式 */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus 可見性 */
+.category-tab:focus,
+.search-input:focus,
+.product-item:focus {
+  outline: 3px solid var(--accent-green);
+  outline-offset: 2px;
+}

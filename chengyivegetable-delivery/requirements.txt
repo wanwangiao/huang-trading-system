@@ -1,0 +1,101 @@
+# 自適應交易系統回測驗證框架依賴包
+
+# 核心數值計算和數據處理
+numpy>=1.21.0
+pandas>=1.3.0
+scipy>=1.7.0
+
+# 機器學習和統計分析
+scikit-learn>=1.0.0
+statsmodels>=0.13.0
+
+# 優化庫
+cvxpy>=1.2.0
+
+# 技術指標計算
+TA-Lib>=0.4.24
+
+# 績效分析
+empyrical>=0.5.5
+
+# 參數優化
+optuna>=3.0.0
+
+# 數據可視化
+matplotlib>=3.5.0
+seaborn>=0.11.0
+plotly>=5.0.0
+
+# 並發和異步 (內建模組，不需要安裝)
+# asyncio
+# concurrent.futures
+
+# 系統監控和性能
+psutil>=5.8.0
+memory-profiler>=0.60.0
+
+# 配置管理
+pyyaml>=6.0
+python-dotenv>=0.19.0
+
+# 日誌和調試
+loguru>=0.6.0
+
+# 金融數據處理
+yfinance>=0.1.70
+pandas-datareader>=0.10.0
+
+# 時序分析
+pytz>=2021.3
+dateparser>=1.1.0
+
+# 模型序列化
+joblib>=1.1.0
+pickle5>=0.0.12
+
+# 測試框架
+pytest>=7.0.0
+pytest-cov>=4.0.0
+
+# 代碼質量
+black>=22.0.0
+flake8>=4.0.0
+mypy>=0.910
+
+# 數據庫連接（可選）
+sqlalchemy>=1.4.0
+pymongo>=4.0.0
+redis>=4.0.0
+
+# HTTP客戶端
+requests>=2.27.0
+aiohttp>=3.8.0
+
+# 配置驗證
+pydantic>=1.9.0
+
+# 進度條
+tqdm>=4.62.0
+
+# 科學計算加速（可選）
+numba>=0.56.0
+
+# 時序預測專用
+prophet>=1.1.0
+arch>=5.3.0
+
+# 風險管理 (替換為輕量版本)
+# quantlib>=1.28.0  # 太重，Railway構建會失敗
+quantlib-python>=1.29
+
+# 分佈式計算（生產環境暫時禁用）
+# dask>=2022.1.0    # 太重
+# ray>=1.11.0       # 太重
+
+# Web框架 (Railway部署必需)
+Flask>=2.3.0
+Flask-CORS>=4.0.0
+gunicorn>=21.0.0
+
+# 數據庫連接增強
+psycopg2-binary>=2.9.0

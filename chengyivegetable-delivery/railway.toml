@@ -1,0 +1,30 @@
+# Railway Configuration for Huang Trading System
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "python run.py"
+healthcheckPath = "/health"
+restartPolicyType = "always"
+
+[variables]
+# 生產環境設定
+FLASK_ENV = "production"
+PYTHONUNBUFFERED = "1"
+ADMIN_EMAIL = "shnfred555283@gmail.com"
+ADMIN_PASSWORD = "HuangTrading2024!"
+ML_MODEL_CACHE = "true"
+ENABLE_REDIS_CACHE = "true"
+MAX_WORKERS = "4"
+PORT = "8000"
+
+# Trading System 專用設定
+TRADING_MODE = "production"
+RISK_MANAGEMENT = "enabled"
+ML_PREDICTIONS = "enabled"
+BACKTESTING_ENABLED = "true"
+TECHNICAL_ANALYSIS = "enabled"
+
+# 資料庫設定（Railway將自動提供）
+# DATABASE_URL - Railway PostgreSQL自動設置
+# REDIS_URL - Railway Redis自動設置

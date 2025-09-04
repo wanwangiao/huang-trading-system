@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📱 手機除錯頁面 - 外送員系統</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft JhengHei', sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .debug-container {
+            max-width: 100%;
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 24px;
+        }
+        
+        .status-section {
+            background: #e8f5e8;
+            border-left: 4px solid #27ae60;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+        }
+        
+        .status-section.error {
+            background: #ffeaea;
+            border-color: #e74c3c;
+        }
+        
+        .status-section.warning {
+            background: #fff8e1;
+            border-color: #f39c12;
+        }
+        
+        .log-container {
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        
+        .test-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px 5px;
+            width: calc(50% - 10px);
+            transition: all 0.3s;
+        }
+        
+        .test-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .test-button.success {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+        }
+        
+        .test-button.error {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .info-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            border: 2px solid #dee2e6;
+        }
+        
+        .info-card h3 {
+            color: #2c3e50;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .info-card .value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        
+        .clear-log-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-size: 12px;
+            cursor: pointer;
+            float: right;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-container">
+        <h1>📱 外送員系統手機除錯</h1>
+        
+        <!-- 系統狀態 -->
+        <div id="system-status" class="status-section">
+            <strong>🔍 系統檢查中...</strong>
+        </div>
+        
+        <!-- 系統資訊 -->
+        <div class="info-grid">
+            <div class="info-card">
+                <h3>🌐 網路狀態</h3>
+                <div class="value" id="network-status">檢查中...</div>
+            </div>
+            <div class="info-card">
+                <h3>🔗 API狀態</h3>
+                <div class="value" id="api-status">檢查中...</div>
+            </div>
+            <div class="info-card">
+                <h3>⏱️ 載入時間</h3>
+                <div class="value" id="load-time">計算中...</div>
+            </div>
+            <div class="info-card">
+                <h3>📊 訂單數量</h3>
+                <div class="value" id="order-count">載入中...</div>
+            </div>
+        </div>
+        
+        <!-- 測試按鈕 -->
+        <div style="text-align: center; margin: 20px 0;">
+            <button class="test-button" onclick="testOrderCounts()">📊 測試訂單統計</button>
+            <button class="test-button" onclick="testAreaOrders()">📍 測試地區訂單</button>
+            <button class="test-button" onclick="testDriverStats()">👨‍💼 測試統計資料</button>
+            <button class="test-button" onclick="testFullSystem()">🚀 完整系統測試</button>
+        </div>
+        
+        <!-- 除錯日誌 -->
+        <div>
+            <button class="clear-log-btn" onclick="clearLogs()">清除日誌</button>
+            <h3>📝 即時日誌</h3>
+        </div>
+        <div id="debug-log" class="log-container">日誌初始化中...</div>
+        
+        <!-- 快速操作 -->
+        <div style="margin-top: 20px;">
+            <button class="test-button success" onclick="goToDriverSystem()">🚛 前往外送員系統</button>
+            <button class="test-button error" onclick="reportProblem()">🆘 回報問題</button>
+        </div>
+    </div>
+
+    <script>
+        let debugLog = [];
+        const startTime = Date.now();
+        
+        // 日誌函數
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${type.toUpperCase()}: ${message}`;
+            debugLog.push(logEntry);
+            
+            // 更新顯示
+            const logContainer = document.getElementById('debug-log');
+            logContainer.textContent = debugLog.join('\n');
+            logContainer.scrollTop = logContainer.scrollHeight;
+            
+            // 控制台也輸出
+            console.log(logEntry);
+        }
+        
+        function clearLogs() {
+            debugLog = [];
+            document.getElementById('debug-log').textContent = '';
+            addLog('日誌已清除');
+        }
+        
+        // 更新狀態
+        function updateStatus(message, type = 'success') {
+            const statusEl = document.getElementById('system-status');
+            statusEl.className = `status-section ${type === 'error' ? 'error' : type === 'warning' ? 'warning' : ''}`;
+            statusEl.innerHTML = `<strong>${message}</strong>`;
+        }
+        
+        function updateInfo(id, value) {
+            const el = document.getElementById(id);
+            if (el) el.textContent = value;
+        }
+        
+        // 網路狀態檢查
+        function checkNetworkStatus() {
+            updateInfo('network-status', navigator.onLine ? '✅ 在線' : '❌ 離線');
+            addLog(`網路狀態: ${navigator.onLine ? '在線' : '離線'}`);
+        }
+        
+        // API測試函數
+        async function testApi(url, name) {
+            try {
+                addLog(`開始測試 ${name}: ${url}`);
+                const startTime = Date.now();
+                
+                const response = await fetch(url);
+                const duration = Date.now() - startTime;
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    addLog(`✅ ${name} 成功 (${duration}ms): ${JSON.stringify(data).substring(0, 100)}...`);
+                    return { success: true, data, duration };
+                } else {
+                    addLog(`❌ ${name} HTTP錯誤: ${response.status} ${response.statusText}`);
+                    return { success: false, error: `HTTP ${response.status}` };
+                }
+            } catch (error) {
+                addLog(`❌ ${name} 網路錯誤: ${error.message}`);
+                return { success: false, error: error.message };
+            }
+        }
+        
+        // 測試訂單統計
+        async function testOrderCounts() {
+            updateStatus('🔍 測試訂單統計中...', 'warning');
+            const result = await testApi('/api/driver/order-counts', '訂單統計API');
+            
+            if (result.success) {
+                const totalOrders = Object.values(result.data.counts || {}).reduce((a, b) => a + b, 0);
+                updateInfo('order-count', totalOrders);
+                updateInfo('api-status', '✅ 正常');
+                updateStatus('✅ 訂單統計測試成功');
+            } else {
+                updateInfo('api-status', '❌ 異常');
+                updateStatus(`❌ 訂單統計失敗: ${result.error}`, 'error');
+            }
+        }
+        
+        // 測試地區訂單
+        async function testAreaOrders() {
+            updateStatus('🔍 測試地區訂單中...', 'warning');
+            const areas = ['三峽區', '樹林區', '鶯歌區'];
+            let successCount = 0;
+            
+            for (const area of areas) {
+                const encodedArea = encodeURIComponent(area);
+                const result = await testApi(`/api/driver/area-orders/${encodedArea}`, `${area}訂單`);
+                if (result.success) successCount++;
+            }
+            
+            if (successCount === areas.length) {
+                updateStatus('✅ 地區訂單測試全部通過');
+            } else {
+                updateStatus(`⚠️ 地區訂單測試: ${successCount}/${areas.length} 成功`, 'warning');
+            }
+        }
+        
+        // 測試統計資料
+        async function testDriverStats() {
+            updateStatus('🔍 測試統計資料中...', 'warning');
+            const result = await testApi('/api/driver/stats', '統計資料API');
+            
+            if (result.success) {
+                updateStatus('✅ 統計資料測試成功');
+            } else {
+                updateStatus(`❌ 統計資料失敗: ${result.error}`, 'error');
+            }
+        }
+        
+        // 完整系統測試
+        async function testFullSystem() {
+            updateStatus('🚀 執行完整系統測試...', 'warning');
+            addLog('=== 開始完整系統測試 ===');
+            
+            await testOrderCounts();
+            await new Promise(resolve => setTimeout(resolve, 1000)); // 延遲1秒
+            
+            await testAreaOrders();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            await testDriverStats();
+            
+            const loadTime = Date.now() - startTime;
+            updateInfo('load-time', `${loadTime}ms`);
+            
+            addLog('=== 完整系統測試結束 ===');
+            updateStatus('✅ 完整系統測試完成');
+        }
+        
+        // 前往外送員系統
+        function goToDriverSystem() {
+            addLog('跳轉到外送員系統...');
+            window.location.href = '/driver/login';
+        }
+        
+        // 回報問題
+        function reportProblem() {
+            const logText = debugLog.join('\n');
+            const deviceInfo = {
+                userAgent: navigator.userAgent,
+                screen: `${screen.width}x${screen.height}`,
+                connection: navigator.connection ? navigator.connection.effectiveType : '未知',
+                timestamp: new Date().toISOString()
+            };
+            
+            const problemReport = `
+=== 問題回報 ===
+時間: ${deviceInfo.timestamp}
+設備: ${deviceInfo.userAgent}
+螢幕: ${deviceInfo.screen}
+網路: ${deviceInfo.connection}
+
+=== 除錯日誌 ===
+${logText}
+            `;
+            
+            // 複製到剪貼板
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(problemReport).then(() => {
+                    alert('📋 問題報告已複製到剪貼板！\n請貼給技術支援人員。');
+                });
+            } else {
+                // 顯示在彈窗中
+                alert('問題報告:\n' + problemReport.substring(0, 1000) + '...');
+            }
+            
+            addLog('問題回報已生成');
+        }
+        
+        // 頁面載入完成後執行
+        window.addEventListener('load', function() {
+            addLog('手機除錯頁面載入完成');
+            checkNetworkStatus();
+            
+            // 5秒後自動執行完整測試
+            setTimeout(() => {
+                addLog('自動執行系統檢查...');
+                testFullSystem();
+            }, 2000);
+            
+            // 網路狀態變化監聽
+            window.addEventListener('online', () => {
+                addLog('網路連接恢復');
+                checkNetworkStatus();
+            });
+            
+            window.addEventListener('offline', () => {
+                addLog('網路連接中斷');
+                checkNetworkStatus();
+            });
+        });
+    </script>
+</body>
+</html>

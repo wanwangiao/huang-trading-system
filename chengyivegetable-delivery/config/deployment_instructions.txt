@@ -1,0 +1,22 @@
+MANUS AI 部署指令單
+
+1. 解壓專案
+unzip veg_delivery_db_final.zip
+cd veg_delivery_db_updated
+
+2. 在 Supabase 建表與載入商品
+(到 Supabase SQL Editor 分別執行 schema.sql 與 seed.sql)
+
+3. 將專案推送到 GitHub
+git init
+git add .
+git commit -m "Initial commit for chengyivegetable"
+git branch -M main
+git remote add origin https://github.com/你的帳號/chengyivegetable.git
+git push -u origin main
+
+4. 在 Render 部署
+- 到 Render → New → Blueprint Deploy
+- 選上面的 GitHub repo
+- Render 會自動依 render.yaml 建立服務與環境變數
+- 等部署完成，記下網站 URL

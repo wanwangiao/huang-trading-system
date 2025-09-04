@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>承億蔬菜外送 - LINE 專屬入口</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Microsoft YaHei', Arial, sans-serif;
+      background: linear-gradient(135deg, #67B26F, #4ca2cd);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #333;
+    }
+    
+    .container {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 40px;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      max-width: 400px;
+      width: 90%;
+    }
+    
+    .logo {
+      font-size: 4em;
+      margin-bottom: 20px;
+    }
+    
+    h1 {
+      color: #2d3748;
+      margin-bottom: 10px;
+      font-size: 1.8em;
+    }
+    
+    .subtitle {
+      color: #4a5568;
+      margin-bottom: 30px;
+      font-size: 1.1em;
+    }
+    
+    .status {
+      padding: 15px;
+      border-radius: 10px;
+      margin: 20px 0;
+      font-weight: bold;
+    }
+    
+    .status.loading {
+      background: #e6fffa;
+      color: #234e52;
+      border: 2px solid #81e6d9;
+    }
+    
+    .status.success {
+      background: #c6f6d5;
+      color: #22543d;
+      border: 2px solid #68d391;
+    }
+    
+    .status.error {
+      background: #fed7d7;
+      color: #c53030;
+      border: 2px solid #fc8181;
+    }
+    
+    .btn {
+      background: linear-gradient(45deg, #48bb78, #38a169);
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 25px;
+      font-size: 1.1em;
+      font-weight: bold;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      transition: all 0.3s ease;
+      margin: 10px;
+    }
+    
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    
+    .btn.secondary {
+      background: linear-gradient(45deg, #4299e1, #3182ce);
+    }
+    
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #38a169;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 15px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .user-info {
+      background: #f7fafc;
+      border-radius: 10px;
+      padding: 15px;
+      margin: 20px 0;
+      text-align: left;
+    }
+    
+    .user-info strong {
+      color: #2d3748;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">🥬</div>
+    <h1>承億蔬菜外送</h1>
+    <p class="subtitle">LINE 專屬購物入口</p>
+    
+    <div id="status" class="status loading">
+      <div class="spinner"></div>
+      正在初始化 LINE 服務...
+    </div>
+    
+    <div id="userInfo" class="user-info" style="display: none;">
+      <strong>歡迎：</strong><span id="displayName"></span><br>
+      <strong>LINE ID：</strong><span id="userId"></span>
+    </div>
+    
+    <div id="actions" style="display: none;">
+      <a href="/" class="btn">🛒 開始購物</a>
+      <a href="/admin" class="btn secondary">⚙️ 管理後台</a>
+    </div>
+  </div>
+
+  <!-- LINE LIFF SDK -->
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  
+  <script>
+    // LIFF ID (需要從環境變數取得)
+    const LIFF_ID = '<%= liffId %>';
+    
+    async function initializeLIFF() {
+      try {
+        console.log('🔄 初始化 LIFF...');
+        
+        // 初始化 LIFF
+        await liff.init({ liffId: LIFF_ID });
+        console.log('✅ LIFF 初始化成功');
+        
+        if (!liff.isLoggedIn()) {
+          console.log('🔐 用戶未登入，開始登入流程');
+          liff.login();
+          return;
+        }
+        
+        console.log('👤 用戶已登入，取得用戶資訊');
+        
+        // 取得用戶資訊
+        const profile = await liff.getProfile();
+        console.log('📱 用戶資訊:', profile);
+        
+        // 顯示用戶資訊
+        document.getElementById('displayName').textContent = profile.displayName;
+        document.getElementById('userId').textContent = profile.userId;
+        document.getElementById('userInfo').style.display = 'block';
+        
+        // 自動綁定用戶
+        await bindUserAccount(profile);
+        
+      } catch (error) {
+        console.error('❌ LIFF 初始化失敗:', error);
+        
+        document.getElementById('status').className = 'status error';
+        document.getElementById('status').innerHTML = `
+          ❌ 初始化失敗<br>
+          <small>錯誤：${error.message}</small><br>
+          <small>請重新開啟或聯繫客服</small>
+        `;
+      }
+    }
+    
+    async function bindUserAccount(profile) {
+      try {
+        console.log('🔗 開始綁定用戶帳號...');
+        
+        // 發送用戶資訊到後端進行綁定
+        const response = await fetch('/api/line/bind-user', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            lineUserId: profile.userId,
+            displayName: profile.displayName,
+            pictureUrl: profile.pictureUrl
+          })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          console.log('✅ 用戶綁定成功');
+          
+          document.getElementById('status').className = 'status success';
+          document.getElementById('status').innerHTML = `
+            ✅ 歡迎回來，${profile.displayName}！<br>
+            您的帳號已成功連結
+          `;
+          
+          // 顯示操作按鈕
+          document.getElementById('actions').style.display = 'block';
+          
+          // 3秒後自動跳轉到購物頁面
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 3000);
+          
+        } else {
+          console.warn('⚠️ 用戶綁定失敗:', result.message);
+          
+          document.getElementById('status').className = 'status error';
+          document.getElementById('status').innerHTML = `
+            ⚠️ 帳號連結失敗<br>
+            <small>${result.message}</small>
+          `;
+          
+          // 仍然顯示操作按鈕，讓用戶可以繼續使用
+          document.getElementById('actions').style.display = 'block';
+        }
+        
+      } catch (error) {
+        console.error('❌ 綁定用戶失敗:', error);
+        
+        document.getElementById('status').className = 'status error';
+        document.getElementById('status').innerHTML = `
+          ❌ 連結失敗<br>
+          <small>網路錯誤，請稍後再試</small>
+        `;
+        
+        // 即使綁定失敗，也讓用戶可以繼續購物
+        document.getElementById('actions').style.display = 'block';
+      }
+    }
+    
+    // 頁面載入時初始化
+    window.addEventListener('DOMContentLoaded', function() {
+      console.log('📱 LIFF 入口頁面已載入');
+      
+      // 檢查是否有 LIFF ID
+      if (!LIFF_ID || LIFF_ID === '') {
+        document.getElementById('status').className = 'status error';
+        document.getElementById('status').innerHTML = `
+          ❌ 設定錯誤<br>
+          <small>LIFF ID 未設定</small><br>
+          <small>請聯繫系統管理員</small>
+        `;
+        return;
+      }
+      
+      // 初始化 LIFF
+      initializeLIFF();
+    });
+    
+    // 錯誤處理
+    window.addEventListener('error', function(event) {
+      console.error('📱 頁面錯誤:', event.error);
+      
+      document.getElementById('status').className = 'status error';
+      document.getElementById('status').innerHTML = `
+        ❌ 載入錯誤<br>
+        <small>請重新整理頁面或聯繫客服</small>
+      `;
+    });
+  </script>
+</body>
+</html>

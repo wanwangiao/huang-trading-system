@@ -1,0 +1,962 @@
+/* =================================================
+   🚛 外送員專區樣式 - 手機優先設計
+   ================================================= */
+
+/* 基礎重置和變量 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    /* 外送員專用色彩 */
+    --primary-blue: #2980b9;
+    --primary-light: #3498db;
+    --primary-dark: #1e5f8a;
+    
+    /* 狀態色彩 */
+    --success-green: #27ae60;
+    --warning-orange: #f39c12;
+    --danger-red: #e74c3c;
+    --info-blue: #3498db;
+    
+    /* 中性色彩 */
+    --white: #ffffff;
+    --light-gray: #f8f9fa;
+    --medium-gray: #e9ecef;
+    --dark-gray: #6c757d;
+    --text-dark: #2c3e50;
+    
+    /* 陰影 */
+    --shadow-light: 0 2px 10px rgba(0, 0, 0, 0.1);
+    --shadow-medium: 0 4px 20px rgba(0, 0, 0, 0.15);
+    
+    /* 圓角 */
+    --radius-small: 8px;
+    --radius-medium: 12px;
+    --radius-large: 20px;
+    
+    /* 間距 */
+    --spacing-xs: 0.5rem;
+    --spacing-sm: 1rem;
+    --spacing-md: 1.5rem;
+    --spacing-lg: 2rem;
+}
+
+/* 全局樣式 */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+    background: var(--light-gray);
+    color: var(--text-dark);
+    line-height: 1.6;
+    font-size: 16px;
+}
+
+/* ===== 登入頁面 ===== */
+.login-page {
+    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-dark) 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-md);
+}
+
+.login-container {
+    width: 100%;
+    max-width: 400px;
+}
+
+.login-card {
+    background: var(--white);
+    border-radius: var(--radius-large);
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-medium);
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: var(--spacing-lg);
+}
+
+.login-header h1 {
+    font-size: 2rem;
+    color: var(--primary-blue);
+    margin-bottom: var(--spacing-xs);
+}
+
+.login-header h2 {
+    font-size: 1.2rem;
+    color: var(--dark-gray);
+    font-weight: 500;
+}
+
+.error-message {
+    background: rgba(231, 76, 60, 0.1);
+    color: var(--danger-red);
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-small);
+    margin-bottom: var(--spacing-md);
+    border: 1px solid rgba(231, 76, 60, 0.3);
+}
+
+.login-form .form-group {
+    margin-bottom: var(--spacing-md);
+}
+
+.login-form label {
+    display: block;
+    margin-bottom: var(--spacing-xs);
+    font-weight: 500;
+    color: var(--text-dark);
+}
+
+.login-form input {
+    width: 100%;
+    padding: var(--spacing-sm);
+    border: 2px solid var(--medium-gray);
+    border-radius: var(--radius-small);
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+}
+
+.login-form input:focus {
+    outline: none;
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.login-btn {
+    width: 100%;
+    padding: var(--spacing-md);
+    background: var(--primary-blue);
+    color: var(--white);
+    border: none;
+    border-radius: var(--radius-small);
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    margin-top: var(--spacing-md);
+}
+
+.login-btn:hover {
+    background: var(--primary-dark);
+}
+
+.login-footer {
+    text-align: center;
+    margin-top: var(--spacing-lg);
+    color: var(--dark-gray);
+    font-size: 0.9rem;
+}
+
+.login-footer .contact {
+    font-weight: 600;
+    color: var(--primary-blue);
+}
+
+/* ===== 外送員工作台 ===== */
+.driver-header {
+    background: var(--primary-blue);
+    color: var(--white);
+    padding: var(--spacing-md);
+    box-shadow: var(--shadow-light);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.driver-info h1 {
+    font-size: 1.3rem;
+    margin-bottom: 2px;
+}
+
+.driver-info p {
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.status {
+    font-size: 0.8rem;
+    padding: 4px 8px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.logout-btn {
+    color: var(--white);
+    text-decoration: none;
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+.logout-btn:hover {
+    opacity: 1;
+}
+
+/* 主要內容區域 */
+.driver-main {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: var(--spacing-md);
+}
+
+/* 統計卡片 */
+.stats-section {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+}
+
+.stat-card {
+    background: var(--white);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-medium);
+    box-shadow: var(--shadow-light);
+    text-align: center;
+}
+
+.stat-icon {
+    font-size: 1.5rem;
+    margin-bottom: var(--spacing-xs);
+}
+
+.stat-content h3 {
+    font-size: 0.8rem;
+    color: var(--dark-gray);
+    margin-bottom: 4px;
+}
+
+.stat-number {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--primary-blue);
+}
+
+/* 標籤切換 */
+.tabs-section {
+    margin-bottom: var(--spacing-md);
+}
+
+.tabs {
+    display: flex;
+    background: var(--white);
+    border-radius: var(--radius-medium);
+    box-shadow: var(--shadow-light);
+    overflow: hidden;
+}
+
+.tab {
+    flex: 1;
+    padding: var(--spacing-sm);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.tab.active {
+    background: var(--primary-blue);
+    color: var(--white);
+}
+
+.tab .badge {
+    background: var(--warning-orange);
+    color: var(--white);
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 10px;
+    margin-left: 4px;
+    min-width: 18px;
+    display: inline-block;
+    text-align: center;
+}
+
+.tab.active .badge {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* 標籤內容 */
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+}
+
+.section-header h2 {
+    font-size: 1.1rem;
+    color: var(--text-dark);
+}
+
+/* 頭部操作按鈕 */
+.header-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.refresh-btn {
+    background: var(--info-blue);
+    color: var(--white);
+    border: none;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-small);
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.batch-select-btn {
+    background: linear-gradient(135deg, #9b59b6, #8e44ad);
+    color: var(--white);
+    border: none;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-small);
+    font-size: 0.8rem;
+    cursor: pointer;
+    font-weight: 500;
+    box-shadow: 0 2px 8px rgba(155, 89, 182, 0.3);
+    transition: all 0.3s ease;
+}
+
+.batch-select-btn:hover {
+    background: linear-gradient(135deg, #8e44ad, #7d3c98);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(155, 89, 182, 0.4);
+}
+
+/* 批次推薦彈窗樣式 */
+.batch-modal-content {
+    background: white;
+    border-radius: 16px;
+    max-width: 600px;
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+.batch-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, #f8f5ff, #ffffff);
+}
+
+.batch-header h3 {
+    margin: 0;
+    color: #8e44ad;
+    font-size: 1.3rem;
+}
+
+.batch-summary {
+    padding: 20px 24px;
+}
+
+.summary-stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.stat {
+    text-align: center;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.stat-label {
+    display: block;
+    font-size: 0.8rem;
+    color: #666;
+    margin-bottom: 4px;
+}
+
+.stat-value {
+    display: block;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #2c3e50;
+}
+
+.batch-efficiency {
+    background: #e8f5e8;
+    padding: 16px;
+    border-radius: 8px;
+    border-left: 4px solid #27ae60;
+}
+
+.batch-efficiency h4 {
+    margin: 0 0 12px 0;
+    color: #27ae60;
+}
+
+.batch-efficiency p {
+    margin: 6px 0;
+    font-size: 0.9rem;
+    color: #2d5a3d;
+}
+
+.batch-orders {
+    padding: 0 24px 20px;
+}
+
+.batch-orders h4 {
+    margin: 0 0 16px 0;
+    color: #2c3e50;
+}
+
+.batch-order-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.batch-order-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    margin-bottom: 8px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 3px solid #3498db;
+}
+
+.order-rank {
+    background: #3498db;
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.order-info {
+    flex: 1;
+    font-size: 0.9rem;
+}
+
+.order-reason {
+    flex: 1;
+    color: #666;
+}
+
+.batch-footer {
+    padding: 16px 24px;
+    border-top: 1px solid #eee;
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.batch-footer button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.batch-footer .btn-primary {
+    background: linear-gradient(135deg, #9b59b6, #8e44ad);
+    color: white;
+}
+
+.batch-footer .btn-primary:hover {
+    background: linear-gradient(135deg, #8e44ad, #7d3c98);
+    transform: translateY(-1px);
+}
+
+/* 訂單列表 */
+.orders-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.order-card {
+    background: var(--white);
+    border-radius: var(--radius-medium);
+    padding: var(--spacing-md);
+    box-shadow: var(--shadow-light);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-left: 4px solid transparent;
+}
+
+.order-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-medium);
+}
+
+.order-card.available {
+    border-left-color: var(--success-green);
+}
+
+.order-card.my-order {
+    border-left-color: var(--info-blue);
+}
+
+.order-card.completed {
+    border-left-color: var(--dark-gray);
+    opacity: 0.8;
+}
+
+.order-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-xs);
+}
+
+.order-number {
+    font-weight: 700;
+    color: var(--primary-blue);
+}
+
+.order-area {
+    background: var(--light-gray);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    color: var(--dark-gray);
+}
+
+.order-amount {
+    font-weight: 700;
+    color: var(--success-green);
+    font-size: 1.1rem;
+}
+
+.order-customer {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-xs);
+    font-size: 0.9rem;
+}
+
+.customer-name {
+    color: var(--text-dark);
+}
+
+.customer-phone {
+    color: var(--dark-gray);
+}
+
+.order-address {
+    color: var(--dark-gray);
+    font-size: 0.9rem;
+    margin-bottom: var(--spacing-xs);
+}
+
+.order-items {
+    font-size: 0.8rem;
+    color: var(--dark-gray);
+    margin-bottom: var(--spacing-xs);
+}
+
+.order-items .item {
+    display: inline-block;
+    background: var(--light-gray);
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-right: 4px;
+    margin-bottom: 4px;
+}
+
+.order-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    color: var(--dark-gray);
+}
+
+.delivery-fee {
+    color: var(--success-green);
+    font-weight: 500;
+}
+
+.complete-btn {
+    background: var(--success-green);
+    color: var(--white);
+    border: none;
+    padding: 4px 12px;
+    border-radius: var(--radius-small);
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+.earning {
+    color: var(--success-green);
+    font-weight: 600;
+}
+
+.order-status {
+    font-size: 0.8rem;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-weight: 500;
+}
+
+.order-status.delivering {
+    background: var(--info-blue);
+    color: var(--white);
+}
+
+.order-status.completed {
+    background: var(--success-green);
+    color: var(--white);
+}
+
+/* 空狀態 */
+.empty-state {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--dark-gray);
+}
+
+.empty-icon {
+    font-size: 3rem;
+    margin-bottom: var(--spacing-md);
+}
+
+/* 彈窗 */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: var(--spacing-md);
+}
+
+.modal-content {
+    background: var(--white);
+    border-radius: var(--radius-medium);
+    max-width: 500px;
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--medium-gray);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: var(--text-dark);
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--dark-gray);
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-body {
+    padding: var(--spacing-md);
+}
+
+.modal-footer {
+    padding: var(--spacing-md);
+    border-top: 1px solid var(--medium-gray);
+    display: flex;
+    gap: var(--spacing-sm);
+    justify-content: flex-end;
+}
+
+/* 訂單詳情 */
+.order-detail {
+    font-size: 0.9rem;
+}
+
+.detail-section {
+    margin-bottom: var(--spacing-md);
+}
+
+.detail-section h4 {
+    margin-bottom: var(--spacing-xs);
+    color: var(--primary-blue);
+    font-size: 1rem;
+}
+
+.detail-section p {
+    margin-bottom: 4px;
+    line-height: 1.4;
+}
+
+.item-row, .fee-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    border-bottom: 1px solid var(--light-gray);
+}
+
+.fee-row.total {
+    border-top: 2px solid var(--medium-gray);
+    font-weight: 700;
+    color: var(--primary-blue);
+    margin-top: var(--spacing-xs);
+}
+
+/* 按鈕 */
+.btn-primary {
+    background: var(--primary-blue);
+    color: var(--white);
+    border: none;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-small);
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.btn-success {
+    background: var(--success-green);
+    color: var(--white);
+    border: none;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-small);
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.btn-secondary {
+    background: var(--medium-gray);
+    color: var(--text-dark);
+    border: none;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-small);
+    cursor: pointer;
+    font-weight: 500;
+}
+
+/* 響應式設計 */
+@media (max-width: 480px) {
+    .stats-section {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .stats-section .stat-card:last-child {
+        grid-column: span 2;
+    }
+    
+    .tabs {
+        flex-direction: column;
+    }
+    
+    .order-header {
+        flex-wrap: wrap;
+        gap: var(--spacing-xs);
+    }
+    
+    .order-customer {
+        flex-direction: column;
+        gap: 2px;
+    }
+    
+    .order-footer {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+}
+
+/* 動畫 */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.order-card {
+    animation: fadeIn 0.3s ease;
+}
+
+/* 推薦訂單樣式 */
+.order-card.recommended {
+    border: 2px solid #f39c12;
+    background: linear-gradient(135deg, #fff9e6 0%, #ffffff 100%);
+    position: relative;
+    animation: recommendedPulse 2s ease-in-out infinite;
+}
+
+@keyframes recommendedPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(243, 156, 18, 0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(243, 156, 18, 0.1); }
+}
+
+.recommend-badge {
+    position: absolute;
+    top: -8px;
+    right: 15px;
+    background: linear-gradient(135deg, #f39c12, #e67e22);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(243, 156, 18, 0.3);
+    z-index: 10;
+}
+
+.recommend-reason {
+    background: rgba(243, 156, 18, 0.1);
+    color: #d68910;
+    padding: 8px 12px;
+    margin: 8px 0;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    border-left: 3px solid #f39c12;
+}
+
+.order-card.recommended:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(243, 156, 18, 0.2);
+}
+
+/* 智能推薦標籤 */
+.smart-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    margin-left: 8px;
+    font-weight: 500;
+}
+
+/* 批次配送樣式 */
+.order-card.batch-leader {
+    border-left: 4px solid #9b59b6;
+    background: linear-gradient(135deg, #f8f5ff 0%, #ffffff 100%);
+}
+
+.batch-badge {
+    position: absolute;
+    top: -8px;
+    left: 15px;
+    background: linear-gradient(135deg, #9b59b6, #8e44ad);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(155, 89, 182, 0.3);
+    z-index: 10;
+}
+
+.order-efficiency {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 8px 0;
+    padding: 8px;
+    background: rgba(52, 152, 219, 0.05);
+    border-radius: 6px;
+    border-left: 3px solid #3498db;
+}
+
+.batch-info, .time-estimate, .efficiency-score {
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 500;
+}
+
+.batch-info {
+    background: rgba(155, 89, 182, 0.1);
+    color: #8e44ad;
+}
+
+.time-estimate {
+    background: rgba(39, 174, 96, 0.1);
+    color: #27ae60;
+}
+
+.efficiency-score {
+    background: rgba(243, 156, 18, 0.1);
+    color: #f39c12;
+    font-weight: 600;
+}
+
+/* 批次配送動畫 */
+.order-card.batch-leader:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(155, 89, 182, 0.2);
+}
+
+/* 效率評分顏色 */
+.efficiency-score[data-score="high"] {
+    background: rgba(39, 174, 96, 0.1);
+    color: #27ae60;
+}
+
+.efficiency-score[data-score="medium"] {
+    background: rgba(243, 156, 18, 0.1);
+    color: #f39c12;
+}
+
+.efficiency-score[data-score="low"] {
+    background: rgba(231, 76, 60, 0.1);
+    color: #e74c3c;
+}
+
+/* 通知樣式在JS中定義 */

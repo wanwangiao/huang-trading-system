@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    
+    <!-- CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #28a745;
+            --secondary: #6c757d;
+            --success: #20c997;
+            --warning: #ffc107;
+            --danger: #dc3545;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        .map-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .map-title {
+            color: var(--primary);
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .map-container {
+            height: 80vh;
+            min-height: 600px;
+            position: relative;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+            margin: 20px;
+        }
+
+        #delivery-map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .map-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        .map-btn {
+            background: white;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+            min-width: 150px;
+        }
+
+        .map-btn:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .map-info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            max-width: 300px;
+        }
+
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            font-weight: 500;
+            color: var(--primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 1001;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 1002;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success { background: var(--success); }
+        .notification.info { background: #17a2b8; }
+        .notification.warning { background: var(--warning); }
+        .notification.error { background: var(--danger); }
+
+        @media (max-width: 768px) {
+            .map-container {
+                margin: 10px;
+                height: 85vh;
+            }
+            
+            .map-controls {
+                top: 10px;
+                right: 10px;
+            }
+            
+            .map-btn {
+                padding: 8px 12px;
+                font-size: 12px;
+                min-width: 120px;
+            }
+            
+            .map-info {
+                bottom: 10px;
+                left: 10px;
+                max-width: calc(100% - 20px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 返回按鈕 -->
+    <a href="javascript:history.back()" class="back-btn">
+        <i class="fas fa-arrow-left"></i> 返回
+    </a>
+
+    <!-- 頁面標題 -->
+    <div class="map-header">
+        <h1 class="map-title">
+            <i class="fas fa-map-marked-alt"></i>
+            配送地圖 - 即時追蹤
+        </h1>
+        <p class="text-muted mb-0">即時查看配送員位置和配送路線</p>
+    </div>
+
+    <!-- 地圖容器 -->
+    <div class="map-container">
+        <div id="delivery-map"></div>
+        
+        <!-- 地圖控制按鈕 -->
+        <div class="map-controls">
+            <button class="map-btn" onclick="centerMap()">
+                <i class="fas fa-crosshairs"></i> 重置視角
+            </button>
+            <button class="map-btn" onclick="toggleTraffic()">
+                <i class="fas fa-traffic-light"></i> 交通狀況
+            </button>
+            <button class="map-btn" onclick="toggleRoutes()">
+                <i class="fas fa-route"></i> 路線顯示
+            </button>
+            <button class="map-btn" onclick="refreshDrivers()">
+                <i class="fas fa-sync-alt"></i> 刷新位置
+            </button>
+        </div>
+
+        <!-- 地圖資訊 -->
+        <div class="map-info">
+            <h6 class="text-primary mb-2">
+                <i class="fas fa-info-circle"></i> 配送狀況
+            </h6>
+            <div id="delivery-stats">
+                <p class="mb-1"><i class="fas fa-truck"></i> 配送中: <span class="fw-bold">5台車</span></p>
+                <p class="mb-1"><i class="fas fa-clock"></i> 平均時間: <span class="fw-bold">42分鐘</span></p>
+                <p class="mb-0"><i class="fas fa-map-pin"></i> 服務範圍: <span class="fw-bold">三峽、北大、樹林</span></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 通知容器 -->
+    <div id="notification" class="notification"></div>
+
+    <!-- Google Maps API -->
+    <script>
+        let map;
+        let directionsService;
+        let directionsRenderer;
+        let trafficLayer = null;
+        let routesVisible = true;
+        let storeMarker;
+        let driverMarkers = [];
+
+        // 初始化地圖
+        function initMap() {
+            console.log('🗺️ 初始化配送地圖...');
+            
+            // 總店位置（三峽）
+            const storeLocation = { lat: 24.9348, lng: 121.3722 };
+            
+            // 創建地圖
+            map = new google.maps.Map(document.getElementById('delivery-map'), {
+                zoom: 13,
+                center: storeLocation,
+                styles: [
+                    {
+                        featureType: 'poi',
+                        elementType: 'labels',
+                        stylers: [{ visibility: 'simplified' }]
+                    }
+                ],
+                mapTypeControl: true,
+                streetViewControl: true,
+                fullscreenControl: true
+            });
+            
+            // 設定路線服務
+            directionsService = new google.maps.DirectionsService();
+            directionsRenderer = new google.maps.DirectionsRenderer({
+                suppressMarkers: true,
+                polylineOptions: {
+                    strokeColor: '#28a745',
+                    strokeOpacity: 0.8,
+                    strokeWeight: 4
+                }
+            });
+            directionsRenderer.setMap(map);
+            
+            // 添加總店標記
+            storeMarker = new google.maps.Marker({
+                position: storeLocation,
+                map: map,
+                title: '🍃 誠意鮮蔬總店',
+                icon: {
+                    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                        <svg width="40" height="40" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="20" cy="20" r="18" fill="#28a745" stroke="white" stroke-width="2"/>
+                            <text x="20" y="25" text-anchor="middle" fill="white" font-size="16">🏪</text>
+                        </svg>
+                    `),
+                    scaledSize: new google.maps.Size(40, 40),
+                    anchor: new google.maps.Point(20, 20)
+                }
+            });
+            
+            // 添加店家資訊視窗
+            const storeInfoWindow = new google.maps.InfoWindow({
+                content: `
+                    <div style="padding: 10px; text-align: center;">
+                        <h6><i class="fas fa-store"></i> 誠意鮮蔬總店</h6>
+                        <p class="mb-1">📍 新北市三峽區</p>
+                        <p class="mb-0">🕐 營業時間: 06:00-22:00</p>
+                    </div>
+                `
+            });
+            
+            storeMarker.addListener('click', () => {
+                storeInfoWindow.open(map, storeMarker);
+            });
+            
+            // 載入配送員位置
+            loadDriverLocations();
+            
+            console.log('✅ 配送地圖初始化完成');
+        }
+
+        // 載入配送員位置
+        function loadDriverLocations() {
+            // 模擬配送員數據
+            const drivers = [
+                { id: 1, name: '張小明', lat: 24.9420, lng: 121.3665, status: '配送中', orders: 3 },
+                { id: 2, name: '李小華', lat: 24.9180, lng: 121.3820, status: '返程中', orders: 0 },
+                { id: 3, name: '王小美', lat: 24.9500, lng: 121.3900, status: '配送中', orders: 2 },
+                { id: 4, name: '陳小偉', lat: 24.9220, lng: 121.3550, status: '待命中', orders: 0 },
+                { id: 5, name: '林小雅', lat: 24.9380, lng: 121.3780, status: '配送中', orders: 1 }
+            ];
+
+            // 清除舊標記
+            driverMarkers.forEach(marker => marker.setMap(null));
+            driverMarkers = [];
+
+            // 添加配送員標記
+            drivers.forEach(driver => {
+                const driverMarker = new google.maps.Marker({
+                    position: { lat: driver.lat, lng: driver.lng },
+                    map: map,
+                    title: `配送員：${driver.name}`,
+                    icon: {
+                        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                            <svg width="35" height="35" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="17.5" cy="17.5" r="16" fill="${driver.status === '配送中' ? '#28a745' : '#ffc107'}" stroke="white" stroke-width="2"/>
+                                <text x="17.5" y="22" text-anchor="middle" fill="white" font-size="14">🚛</text>
+                            </svg>
+                        `),
+                        scaledSize: new google.maps.Size(35, 35),
+                        anchor: new google.maps.Point(17.5, 17.5)
+                    }
+                });
+                
+                // 配送員資訊視窗
+                const driverInfoWindow = new google.maps.InfoWindow({
+                    content: `
+                        <div style="padding: 10px; min-width: 200px;">
+                            <h6><i class="fas fa-user"></i> ${driver.name}</h6>
+                            <p class="mb-1"><strong>狀態:</strong> <span class="badge bg-${driver.status === '配送中' ? 'success' : 'warning'}">${driver.status}</span></p>
+                            <p class="mb-1"><strong>配送訂單:</strong> ${driver.orders} 筆</p>
+                            <p class="mb-0"><strong>更新時間:</strong> ${new Date().toLocaleTimeString('zh-TW')}</p>
+                        </div>
+                    `
+                });
+                
+                driverMarker.addListener('click', () => {
+                    driverInfoWindow.open(map, driverMarker);
+                });
+                
+                driverMarkers.push(driverMarker);
+            });
+        }
+
+        // 地圖控制功能
+        function centerMap() {
+            map.setCenter({ lat: 24.9348, lng: 121.3722 });
+            map.setZoom(13);
+            showNotification('🎯 地圖視角已重置', 'info');
+        }
+
+        function toggleTraffic() {
+            if (trafficLayer) {
+                trafficLayer.setMap(null);
+                trafficLayer = null;
+                showNotification('🚦 交通狀況已隱藏', 'info');
+            } else {
+                trafficLayer = new google.maps.TrafficLayer();
+                trafficLayer.setMap(map);
+                showNotification('🚦 交通狀況已顯示', 'success');
+            }
+        }
+
+        function toggleRoutes() {
+            routesVisible = !routesVisible;
+            if (routesVisible) {
+                directionsRenderer.setMap(map);
+                showNotification('🛣️ 路線已顯示', 'success');
+            } else {
+                directionsRenderer.setMap(null);
+                showNotification('🛣️ 路線已隱藏', 'info');
+            }
+        }
+
+        function refreshDrivers() {
+            showNotification('🔄 正在刷新配送員位置...', 'info');
+            setTimeout(() => {
+                loadDriverLocations();
+                showNotification('✅ 配送員位置已更新', 'success');
+            }, 1000);
+        }
+
+        // 顯示通知
+        function showNotification(message, type = 'info') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // 頁面載入完成後初始化
+        window.addEventListener('load', () => {
+            if (typeof google !== 'undefined') {
+                initMap();
+            }
+        });
+    </script>
+
+    <!-- 載入 Google Maps API -->
+    <script async defer 
+            src="https://maps.googleapis.com/maps/api/js?key=<%= googleMapsApiKey %>&libraries=geometry&callback=initMap">
+    </script>
+</body>
+</html>
