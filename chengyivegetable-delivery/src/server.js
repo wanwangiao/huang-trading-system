@@ -860,7 +860,7 @@ function getProductEmoji(productName) {
   return '🥬'; // 預設蔬菜表情符號
 }
 
-// 診斷頁面
+// 診斷頁面 - 無需認證
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
@@ -873,6 +873,14 @@ app.get('/health', (req, res) => {
       demoMode: demoMode,
       poolStatus: pool ? 'connected' : 'not connected'
     }
+  });
+});
+
+// 簡單測試端點
+app.get('/test', (req, res) => {
+  res.json({
+    message: 'NEW_VERSION_WORKING',
+    timestamp: new Date().toISOString()
   });
 });
 
